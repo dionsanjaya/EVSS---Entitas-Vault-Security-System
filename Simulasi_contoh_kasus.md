@@ -68,7 +68,7 @@ Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya P
      - RFID reader gagal deteksi tag (diblokir wadah logam).
   2. **Pintu Kluis**:
      - Antena EAS deteksi tag AM aktif, picu sirene.
-     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 95% confidence).
+     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 79% confidence).
      - Metal detector di pintu konfirmasi logam, picu alarm tambahan.
   3. **Notifikasi**:
      - Raspberry Pi kirim alert ke AWS IoT Core.

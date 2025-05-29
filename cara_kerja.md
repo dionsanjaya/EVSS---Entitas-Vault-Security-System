@@ -1,6 +1,6 @@
 # Cara Kerja Sistem: Entitas Vault Security System - Pegadaian (EVSS-Pegadaian)
 
-Dokumen ini menjelaskan cara kerja sistem keamanan kluis di cabang Pegadaian, dari teknologi yang dipake, integrasinya, sampe contoh kasus nyata. Sistem dirancang buat jaga barang gadai (misal, kalung, cincin) dengan **multi-layer alarm system**. Waktu pembuatan: **12:08 PM WIB, 29 Mei 2025**.
+Dokumen ini menjelaskan cara kerja sistem keamanan kluis di cabang Pegadaian, dari teknologi yang dipake, integrasinya, sampe contoh kasus nyata. Sistem dirancang buat jaga barang gadai (misal, kalung, cincin) dengan **multi-layer alarm system**.
 
 ## 1. Penjelasan Per Item Teknologi yang Digunakan
 

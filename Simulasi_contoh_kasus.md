@@ -27,7 +27,7 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Alur Kerja**:
   1. **Verifikasi Barang**:
      - Budi scan cincin dengan kamera HD di stasiun verifikasi.
-     - Model AI (YOLOv8) konfirmasi: “Cincin emas 24K, 99% kecocokan.”
+     - Model AI (YOLOv8) konfirmasi: “Cincin emas 24K, 82% kecocokan.”
      - Budi timbang cincin dengan sensor load cell: 5,02 gram.
   2. **Pemberian Tag**:
      - Budi tempel tag AM (EAS) dan tag UHF (RFID) pada cincin.
@@ -68,7 +68,7 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
      - RFID reader gagal deteksi tag (diblokir wadah logam).
   2. **Pintu Kluis**:
      - Antena EAS deteksi tag AM aktif, picu sirene.
-     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 95% confidence).
+     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 75% confidence).
      - Metal detector di pintu konfirmasi logam, picu alarm tambahan.
   3. **Notifikasi**:
      - Raspberry Pi kirim alert ke AWS IoT Core.

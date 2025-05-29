@@ -266,32 +266,45 @@ graph TD
     A[Nasabah Bawa Barang] --> B[Penerimaan Barang]
     B --> C[Kamera AI Scan Barang]
     C -->|Dikenali?| D[Pasang Tag AM & RFID]
-    C -->|Gak Dikenali?| E[Ambil 30 Foto]
+    C -->|Gak Dikenali?| E[Ambil 30 Foto Barang]
     E --> F[Latih AI di Cloud/Lokal]
     F --> G[Sebar Model ke Cabang]
-    G --> D
-    D --> H[Sensor Berat Timbang]
-    H --> I[Simpan Data ke RDS/Server Lokal]
-    I --> J[Simpan di Kluis: RFID Catat Lokasi]
-    J --> K[Sensor Berat Verifikasi]
-    K --> L[Dashboard: Barang Aman]
+    G --> H[Kamera AI Scan Ulang]
+    H -->|Dikenali?| D
+    H -->|Gak Dikenali?| E
+    D --> I[Sensor Berat Timbang Barang]
+    I --> J{Cek Berat Cocok?}
+    J -->|Ya| K[Simpan Data ke RDS/Server Lokal]
+    J -->|Tidak| L[Koreksi Data di Dashboard]
+    L --> K
+    K -->|Internet/VPN Mati?| M[Simpan Sementara di Raspberry Pi]
+    M --> K
+    K --> N[Simpan di Kluis: RFID Catat Lokasi]
+    N --> O[Verifikasi Berat Sesuai Data]
+    O --> P[Dashboard: Barang Aman]
 
-    L --> M[Deteksi Tanpa Izin]
-    M --> N[Sensor Berat: 0g?]
-    N -->|Ya| O[Tag AM Bunyi di Pintu?]
-    O -->|Ya| P[Kamera AI Cek Gerak/Objek]
-    O -->|Gak Bunyi| P
-    P --> Q[Metal Detector Cek Logam]
-    Q -->|Logam Terdeteksi| R[SMS ke Manajer via Twilio]
-    R --> S[Dashboard: Alert Anomali]
-    S --> T[Petugas Periksa]
+    P --> Q[Deteksi Tanpa Izin]
+    Q --> R[Sensor Berat: 0g?]
+    R -->|Ya| S[Tag AM Bunyi di Pintu?]
+    S -->|Ya| T[Kamera AI Cek Gerak/Objek]
+    S -->|Gak Bunyi| T
+    T -->|Kamera Mati?| U[Gunakan Prosedur Manual]
+    U --> V[Metal Detector Cek Logam]
+    T --> V
+    V -->|Logam Terdeteksi?| W[SMS ke Manajer via Twilio]
+    W -->|Internet Mati?| X[Simpan Alert Lokal]
+    X --> W
+    W --> Y[Dashboard: Alert Anomali]
+    Y --> Z[Petugas Periksa]
 
-    L --> U[Pengambilan Nasabah]
-    U --> V[Verifikasi: Kamera AI & RFID]
-    V --> W[Nonaktifkan Tag AM]
-    W --> X[Sensor Berat: 0g Normal]
-    X --> Y[Update Data: Barang Diambil]
-    Y --> Z[Dashboard: Pengambilan Selesai]
+    P --> AA[Pengambilan Nasabah]
+    AA --> AB[Verifikasi: Kamera AI & RFID]
+    AB -->|Kamera Mati?| AC[Verifikasi Manual via RFID]
+    AC --> AD[Nonaktifkan Tag AM]
+    AB --> AD
+    AD --> AE[Sensor Berat: 0g Normal]
+    AE --> AF[Update Data: Barang Diambil]
+    AF --> AG[Dashboard: Pengambilan Selesai]
 ```
 
 ## Manfaat Simulasi

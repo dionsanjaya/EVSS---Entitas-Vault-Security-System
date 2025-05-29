@@ -30,7 +30,7 @@ Sistem mendukung implementasi di banyak cabang, dengan opsi **cloud** (skalabel)
 - **Sistem Operasi**: Linux (Ubuntu 20.04+) untuk Raspberry Pi/server cloud.
 - **Bahasa Pemrograman**: Python 3.8+, JavaScript (dashboard).
 - **Library Python**:
-  - `opencv-python`, `tensorflow`/`pytorch`, `pycryptodome`, `twilio`, `flask`, `psycopg2`.
+  - `opencv-python`, `tensorflow`/`pytorch`, `pycryptodome`, `twilio`, `flask`, `boto3`, `psycopg2`.
 - **Database**: PostgreSQL (AWS RDS) dengan replikasi streaming untuk cabang.
 - **Web Framework**: React (opsional) untuk dashboard.
 - **Cloud Services**: AWS IoT Core, AWS KMS, S3 (rekaman).
@@ -76,7 +76,7 @@ Sistem modular:
          timestamp TIMESTAMP
      );
      ```
-5. **AI Model**: Latih YOLOv8, simpan di `models/yolo_pawn_items.h5`.
+5. **AI Model**: Latih YOLOv8, simpan di `models/yolo_pawn_items.h5`, upload ke S3.
 6. **IoT**: Hubungkan Raspberry Pi ke AWS IoT Core.
 
 ### 6. Penggunaan (Cloud)
@@ -88,6 +88,8 @@ Sistem modular:
    - Akses via browser (misal, `https://dashboard.evss-pegadaian.com`) di komputer/smartphone.
    - Kantor pusat lihat data semua cabang, cabang lihat data lokal.
    - Notifikasi SMS/email untuk anomali.
+6. **Handle Offline**:
+   - Kalau internet mati, data disimpan lokal di Raspberry Pi, sinkron ke RDS pas online lagi.
 
 ---
 
@@ -152,7 +154,8 @@ Sistem modular:
    - Akses via browser di jaringan lokal/VPN (misal, `http://192.168.x.x:5000` untuk cabang, `http://pusat.pegadaian.local:5000` untuk pusat).
    - Kantor pusat lihat data semua cabang, cabang lihat data lokal.
    - Notifikasi SMS/email untuk anomali.
-   - (Masa depan) Aplikasi mobile untuk akses dashboard.
+6. **Handle Offline**:
+   - Kalau VPN mati, data disimpan lokal, sinkron ke pusat pas koneksi balik.
 
 **Contoh Kode Pemantauan Pintu** (Berlaku untuk Keduanya):
 ```python
@@ -161,25 +164,38 @@ from datetime import datetime
 import psycopg2
 from twilio.rest import Client
 
-def detect_eas_tag(): return True  # Simulasi tag AM
-def read_rfid_tag(): return "ITEM123"  # Simulasi RFID
-def verify_item_visual(image_path): return True  # Simulasi AI
+# Simulasi deteksi
+def detect_eas_tag(): return True  # Tag AM aktif
+def read_rfid_tag(): return "ITEM123"  # Tag RFID dibaca
+def verify_item_visual(image_path): return True  # AI verifikasi
 
+# Inisialisasi Twilio
 client = Client('your_account_sid', 'your_auth_token')
 
+# Cek status izin
 def check_authorization(item_id):
-    conn = psycopg2.connect(dbname="evss_pegadaian", user="user", password="pass", host="localhost")
-    cursor = conn.cursor()
-    cursor.execute("SELECT status FROM items WHERE item_id = %s", (item_id,))
-    status = cursor.fetchone()
-    conn.close()
-    return status and status[0] == 'Lunas'
+    try:
+        conn = psycopg2.connect(dbname="evss_pegadaian", user="user", password="pass", 
+                                host="localhost" if not cloud else "<rds_endpoint>")
+        cursor = conn.cursor()
+        cursor.execute("SELECT status FROM items WHERE item_id = %s", (item_id,))
+        status = cursor.fetchone()
+        conn.close()
+        return status and status[0] == 'Lunas'
+    except Exception as e:
+        print(f"Error koneksi DB: {e}")
+        return False
 
+# Kirim notifikasi
 def send_alert(item_id, authorized):
     message = f"Barang {item_id} terdeteksi di pintu kluis pada {datetime.now()}. Izin: {authorized}"
-    client.messages.create(body=message, from_='+1234567890', to='+0987654321')
-    print(f"Notifikasi: {message}")
+    try:
+        client.messages.create(body=message, from_='+1234567890', to='+0987654321')
+        print(f"Notifikasi: {message}")
+    except Exception as e:
+        print(f"Gagal kirim SMS: {e}")
 
+# Loop pemantauan
 while True:
     item_id = read_rfid_tag()
     eas_detected = detect_eas_tag()
@@ -200,10 +216,20 @@ while True:
 - **Dashboard**: Ajarkan baca status, log, dan tangani notifikasi.
 - **Alarm**: Latih prosedur saat alarm EAS/RFID (cek tas dengan metal detector).
 - Durasi: 2-3 hari intensif, sesi mingguan selama 1 bulan.
+
+### SOP Karyawan (Ringkasan)
+1. **Keluar-Masuk Kluis**:
+   - Scan ID RFID + PIN, lewati metal detector, catat di dashboard.
+2. **Penerimaan Barang**:
+   - Verifikasi AI/RFID, input data, simpan di kompartemen.
+3. **Penanganan Alarm**:
+   - Cek dashboard, lihat footage, koordinasi dengan manajer.
+
 ### Penyesuaian Kebiasaan
 - Alur baru: Tag EAS/RFID wajib sebelum masuk kluis.
 - Standar: Verifikasi visual untuk barang bernilai tinggi.
 - Keamanan: Karyawan gunakan RFID + PIN untuk akses kluis.
+
 ### Dukungan
 - Manual pengguna (PDF).
 - Tim IT bantu 24/7 selama 3 bulan pertama.
@@ -216,6 +242,7 @@ while True:
   - Cloud: Perbarui kunci AES-256 via AWS KMS setiap 6 bulan.
   - Lokal: Perbarui kunci lokal setiap 6 bulan.
   - Audit log bulanan.
+
 ### Pengembangan
 - **Fitur**: Biometrik, X-ray scanner, AI lebih canggih.
 - **Skalabilitas**:

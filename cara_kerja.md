@@ -23,7 +23,7 @@ Dokumen ini menjelaskan cara kerja sistem keamanan kluis di cabang Pegadaian, da
 - **Fungsi**: Verifikasi barang, deteksi anomali visual, dan tambah barang baru pake foto.
 - **Kelemahan**: Gak lihat kalau barang disembunyiin (misal, di kantong).
 - **Harga**: ~Rp3 juta per kamera.
-- **Contoh**: AI bilang “Kalung emas, 99%” atau “Kotak logam terdeteksi.”
+- **Contoh**: AI bilang “Kalung emas, 72%” atau “Kotak logam terdeteksi.”
 
 ### 1.4. Sensor Berat (Load Cell)
 - **Apa Itu**: Alat kecil di kompartemen kluis yang timbang barang (misal, 5g).
@@ -96,13 +96,13 @@ Semua teknologi ini kerja bareng dalam **multi-layer alarm system**, dikontrol p
 ### 3.1. Kasus 1: Penerimaan Barang Baru (Kalung Custom)
 - **Konteks**: Nasabah bawa kalung custom (ITEM456), 10g, di Surabaya 1, 12:05 PM.
 - **Keadaan**:
-  - Kamera AI bilang: “Gak dikenali, 45%.”
+  - Kamera AI bilang: “Gak dikenali, 20%.”
   - Budi ambil 30 foto, pasang tag AM/RFID, sensor berat: 10g.
   - Data ke RDS (cloud) atau server lokal.
 - **Proses**:
   - AI dilatih 1-2 jam di cloud (AWS) atau server pusat.
   - Model_v2 disebar ke 1.000 cabang.
-- **Hasil**: Dashboard lihat: “ITEM456 dikenali, 97%,” kalung simpan di A-13.
+- **Hasil**: Dashboard lihat: “ITEM456 dikenali, 75%,” kalung simpan di A-13.
 
 ### 3.2. Kasus 2: Pencurian dengan Kotak Logam
 - **Konteks**: Pelaku ambil kalung ITEM456 dari A-13, sembunyiin di kotak logam, 12:10 PM.
@@ -120,9 +120,9 @@ Semua teknologi ini kerja bareng dalam **multi-layer alarm system**, dikontrol p
 ### 3.3. Kasus 3: Pengambilan Nasabah
 - **Konteks**: Nasabah ambil kalung ITEM123 setelah lunas, 12:15 PM.
 - **Keadaan**:
-  - Budi cek RFID: “ITEM123, siap ambil.”
-  - Kamera AI: “Kalung emas, 99%.”
-  - Tag AM dinonaktifkan pake detacher.
+  - Budi (petugas) cek RFID: “ITEM123, siap ambil.”
+  - Kamera AI: “Kalung emas, 75%.”
+  - Tag AM dinonaktifkan pakai detacher.
   - Sensor berat: 0g (normal).
 - **Proses**:
   - Budi serahin barang, data update ke RDS atau server lokal.

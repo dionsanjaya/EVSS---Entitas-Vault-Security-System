@@ -16,7 +16,7 @@ Dokumen ini menyajikan simulasi kasus nyata untuk menunjukkan cara kerja **Entit
   - Akses data real-time oleh kantor pusat via dashboard.
 
 ## Skenario Simulasi
-Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pengambilan Tanpa Izin**, dan **Pengambilan oleh Nasabah**. Setiap tahap dijelaskan untuk opsi **cloud** dan **lokal**.
+Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pengambilan Tanpa Izin**, **Pengambilan oleh Nasabah**, **Kerusakan Peralatan**, dan **Kesalahan Input Data**. Setiap tahap dijelaskan untuk opsi **cloud** dan **lokal**.
 
 ---
 
@@ -68,7 +68,7 @@ Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya P
      - RFID reader gagal deteksi tag (diblokir wadah logam).
   2. **Pintu Kluis**:
      - Antena EAS deteksi tag AM aktif, picu sirene.
-     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 79% confidence).
+     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 95% confidence).
      - Metal detector di pintu konfirmasi logam, picu alarm tambahan.
   3. **Notifikasi**:
      - Raspberry Pi kirim alert ke AWS IoT Core.
@@ -100,6 +100,42 @@ Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya P
   - Database: Status ITEM123 diperbarui.
   - Notifikasi: Email ke Anita, “ITEM123 diambil.”
 
+#### Tahap 5: Kerusakan Peralatan (09:00 WIB, 29 Mei 2025)
+- **Konteks**: Kamera AI mati karena listrik down di Surabaya 1.
+- **Alur Kerja**:
+  1. **Deteksi Masalah**:
+     - Raspberry Pi kirim alert: “Kamera offline, SBY1, 09:00 WIB.”
+     - Dashboard lihat status: “Kamera AI gagal, gunakan prosedur manual.”
+  2. **Penanganan Manual**:
+     - Budi input data cincin baru (ITEM456, gelang emas, 15g) di dashboard: `item_id: "ITEM456", description: "Gelang emas, 15g", status: "Gadai"`.
+     - Pasang tag AM dan RFID, sensor load cell verifikasi: 15g.
+  3. **Penyimpanan Data**:
+     - Data disimpan di RDS (cloud) meski tanpa AI.
+     - Kantor pusat diberi tahu via email: “Data manual ITEM456, kamera offline.”
+  4. **Perbaikan**:
+     - Teknisi cek listrik, nyala lagi pukul 09:30 WIB.
+     - Kamera AI aktif kembali, verifikasi ulang ITEM456.
+- **Output**:
+  - Database: `INSERT INTO items ...` untuk ITEM456.
+  - Log: “Kamera offline 09:00-09:30 WIB, perbaikan selesai.”
+
+#### Tahap 6: Kesalahan Input Data (10:30 WIB)
+- **Konteks**: Budi salah input berat ITEM123 jadi 50g (harusnya 5g).
+- **Alur Kerja**:
+  1. **Deteksi Kesalahan**:
+     - Sensor load cell di A-12 catat 5,02g, beda sama data dashboard (50g).
+     - Alert muncul: “Data berat gak cocok, cek ulang!”
+  2. **Koreksi**:
+     - Anita buka dashboard, minta Budi periksa.
+     - Budi ubah data: `UPDATE items SET berat = 5 WHERE item_id = 'ITEM123';`.
+  3. **Sinkronisasi**:
+     - Data diperbarui di RDS, notifikasi ke kantor pusat.
+  4. **Dashboard**:
+     - Anita lihat: “ITEM123 berat diperbaiki ke 5g, 10:30 WIB.”
+- **Output**:
+  - Database: Berat ITEM123 diperbarui.
+  - Log: “Koreksi berat ITEM123, 10:30 WIB.”
+
 ---
 
 ### Opsi 2: Implementasi Tanpa Cloud (Server Lokal)
@@ -130,7 +166,7 @@ Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya P
      - RFID reader deteksi tag di A-12.
      - Sensor load cell konfirmasi berat.
   2. **Sinkronisasi Data**:
-     - Data disimpan di server lokal cabang, replikasi ke server pusat via VPN.
+     - Data disimpan di server lokal cabang, replikasi ke pusat via VPN.
      - Update: `UPDATE items SET location = 'A-12' ...`
   3. **Dashboard**:
      - Anita lihat di dashboard lokal: “ITEM123 di A-12.”
@@ -178,6 +214,40 @@ Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya P
   - Database: Status diperbarui.
   - Notifikasi: Email ke Anita.
 
+#### Tahap 5: Kerusakan Peralatan (09:00 WIB, 29 Mei 2025)
+- **Konteks**: Kamera AI mati karena listrik down.
+- **Alur Kerja**:
+  1. **Deteksi Masalah**:
+     - Raspberry Pi kirim alert: “Kamera offline, SBY1, 09:00 WIB.”
+     - Dashboard lokal lihat: “Kamera AI gagal.”
+  2. **Penanganan Manual**:
+     - Budi input data ITEM456 (gelang emas, 15g) di dashboard: `item_id: "ITEM456", description: "Gelang emas, 15g"`.
+     - Pasang tag AM/RFID, sensor load cell verifikasi: 15g.
+  3. **Penyimpanan Data**:
+     - Data disimpan di server lokal, replikasi ke pusat via VPN.
+  4. **Perbaikan**:
+     - Teknisi cek listrik, nyala lagi pukul 09:30 WIB.
+     - Kamera aktif kembali, verifikasi ulang.
+- **Output**:
+  - Database: Data ITEM456 tersimpan.
+  - Log: “Kamera offline 09:00-09:30 WIB.”
+
+#### Tahap 6: Kesalahan Input Data (10:30 WIB)
+- **Konteks**: Budi salah input berat ITEM123 jadi 50g.
+- **Alur Kerja**:
+  1. **Deteksi Kesalahan**:
+     - Sensor load cell catat 5,02g, beda sama dashboard (50g).
+     - Alert: “Data berat gak cocok!”
+  2. **Koreksi**:
+     - Anita minta Budi periksa, ubah data: `UPDATE items SET berat = 5 WHERE item_id = 'ITEM123';`.
+  3. **Sinkronisasi**:
+     - Data diperbarui di server lokal, replikasi ke pusat.
+  4. **Dashboard**:
+     - Anita lihat: “ITEM123 berat diperbaiki ke 5g.”
+- **Output**:
+  - Database: Berat diperbarui.
+  - Log: “Koreksi berat ITEM123.”
+
 ---
 
 ## Perbedaan Utama
@@ -187,6 +257,42 @@ Simulasi mencakup empat tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya P
 | **Akses Dashboard**      | Publik (`https://...`)                | Lokal/VPN (`http://192.168...`)        |
 | **Notifikasi**           | Real-time via Twilio                  | Real-time jika online, tertunda jika offline |
 | **Kantor Pusat**         | Akses langsung via dashboard          | Akses via VPN, latensi mungkin         |
+
+## Flowchart Sistem
+Flowchart ini dibuat pake Mermaid, bisa dirender di [Mermaid Live Editor](https://mermaid.live/).
+
+```mermaid
+graph TD
+    A[Nasabah Bawa Barang] --> B[Penerimaan Barang]
+    B --> C[Kamera AI Scan Barang]
+    C -->|Dikenali?| D[Pasang Tag AM & RFID]
+    C -->|Gak Dikenali?| E[Ambil 30 Foto]
+    E --> F[Latih AI di Cloud/Lokal]
+    F --> G[Sebar Model ke Cabang]
+    G --> D
+    D --> H[Sensor Berat Timbang]
+    H --> I[Simpan Data ke RDS/Server Lokal]
+    I --> J[Simpan di Kluis: RFID Catat Lokasi]
+    J --> K[Sensor Berat Verifikasi]
+    K --> L[Dashboard: Barang Aman]
+
+    L --> M[Deteksi Tanpa Izin]
+    M --> N[Sensor Berat: 0g?]
+    N -->|Ya| O[Tag AM Bunyi di Pintu?]
+    O -->|Ya| P[Kamera AI Cek Gerak/Objek]
+    O -->|Gak Bunyi| P
+    P --> Q[Metal Detector Cek Logam]
+    Q -->|Logam Terdeteksi| R[SMS ke Manajer via Twilio]
+    R --> S[Dashboard: Alert Anomali]
+    S --> T[Petugas Periksa]
+
+    L --> U[Pengambilan Nasabah]
+    U --> V[Verifikasi: Kamera AI & RFID]
+    V --> W[Nonaktifkan Tag AM]
+    W --> X[Sensor Berat: 0g Normal]
+    X --> Y[Update Data: Barang Diambil]
+    Y --> Z[Dashboard: Pengambilan Selesai]
+```
 
 ## Manfaat Simulasi
 - **Kejelasan**: Menunjukkan alur kerja dari penerimaan hingga pengambilan.

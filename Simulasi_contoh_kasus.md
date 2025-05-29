@@ -1,19 +1,20 @@
 # Simulasi Contoh Kasus: Entitas Vault Security System - Pegadaian (EVSS-Pegadaian)
 
-Dokumen ini menyajikan simulasi kasus nyata untuk menunjukkan cara kerja **Entitas Vault Security System - Pegadaian (EVSS-Pegadaian)** dalam mengamankan kluis di cabang Pegadaian. Sistem ini mengintegrasikan **EAS**, **RFID**, **Computer Vision**, **sensor tambahan** (load cell, metal detector), dan **IoT** untuk verifikasi barang, pelacakan lokasi, deteksi tanpa izin, dan notifikasi. Simulasi mencakup dua opsi implementasi: **berbasis cloud** dan **server lokal**, dengan fokus pada alur kerja di cabang dan akses data oleh kantor pusat.
+Dokumen ini menyajikan simulasi kasus nyata untuk menunjukkan cara kerja **Entitas Vault Security System - Pegadaian (EVSS-Pegadaian)** dalam mengamankan kluis di cabang Pegadaian. Sistem ini mengintegrasikan **EAS**, **RFID**, **Computer Vision**, **sensor tambahan** (load cell, metal detector), dan **IoT** untuk verifikasi barang, pelacakan lokasi, deteksi tanpa izin, dan notifikasi. Simulasi mencakup dua opsi implementasi: **berbasis cloud** dan **server lokal**, dengan fokus pada alur kerja di cabang dan akses data oleh kantor pusat. Setiap cabang dilengkapi **UPS (Uninterruptible Power Supply)** sebagai daya cadangan selama 30 menit untuk menjaga operasional sistem.
 
 ## Konteks
 - **Lokasi**: Cabang Pegadaian Surabaya 1, salah satu dari 1.000 cabang nasional.
-- **Barang Gadai**: Cincin emas 24 karat (ITEM123), berat 5 gram, nilai Rp5 juta.
+- **Barang Gadai**: Cincin emas 24 karat (ITEM123), berat 5 gram, nilai Rp5 juta; Gelang emas (ITEM456), berat 15 gram.
 - **Pengguna**:
   - Karyawan cabang: Budi (operator kluis).
   - Manajer cabang: Anita.
   - Tim kantor pusat: Tim IT dan auditor.
 - **Kebutuhan**:
-  - Verifikasi keaslian cincin saat diterima dan dikembalikan.
-  - Pelacakan lokasi cincin di kluis.
-  - Deteksi jika cincin diambil tanpa izin.
+  - Verifikasi keaslian barang saat diterima dan dikembalikan.
+  - Pelacakan lokasi barang di kluis.
+  - Deteksi jika barang diambil tanpa izin.
   - Akses data real-time oleh kantor pusat via dashboard.
+- **Daya Cadangan**: UPS aktif selama 30 menit saat listrik mati, cukup buat operasional darurat.
 
 ## Skenario Simulasi
 Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pengambilan Tanpa Izin**, **Pengambilan oleh Nasabah**, **Kerusakan Peralatan**, dan **Kesalahan Input Data**. Setiap tahap dijelaskan untuk opsi **cloud** dan **lokal**.
@@ -26,14 +27,14 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Konteks**: Nasabah datang menyerahkan cincin emas (ITEM123) untuk gadai.
 - **Alur Kerja**:
   1. **Verifikasi Barang**:
-     - Budi scan cincin dengan kamera HD di stasiun verifikasi.
-     - Model AI (YOLOv8) konfirmasi: “Cincin emas 24K, 82% kecocokan.”
+     - Budi scan cincin dengan kamera HD di stasiun verifikasi (ditenagai listrik normal).
+     - Model AI (YOLOv8) konfirmasi: “Cincin emas 24K, 99% kecocokan.”
      - Budi timbang cincin dengan sensor load cell: 5,02 gram.
   2. **Pemberian Tag**:
      - Budi tempel tag AM (EAS) dan tag UHF (RFID) pada cincin.
      - RFID simpan data: `{item_id: "ITEM123", branch_id: "SBY1", description: "Cincin emas 24K, 5g", status: "Gadai"}`, dienkripsi AES-256.
   3. **Penyimpanan Data**:
-     - Raspberry Pi kirim data ke AWS IoT Core.
+     - Raspberry Pi (ditenagai listrik normal) kirim data ke AWS IoT Core.
      - Data disimpan di PostgreSQL (AWS RDS read replica di cabang Surabaya).
      - Replikasi streaming kirim data ke RDS primary di kantor pusat.
   4. **Dashboard**:
@@ -48,10 +49,10 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Alur Kerja**:
   1. **Pelacakan Lokasi**:
      - Budi masukkan cincin ke kompartemen A-12.
-     - RFID reader di kompartemen deteksi tag UHF, update lokasi: “A-12”.
+     - RFID reader di kompartemen deteksi tag UHF, update lokasi: “A-12.”
      - Sensor load cell catat berat: 5,02 gram.
   2. **Sinkronisasi Data**:
-     - Data dikirim via Raspberry Pi ke AWS IoT Core, lalu ke RDS.
+     - Raspberry Pi kirim data ke AWS IoT Core, lalu ke RDS.
      - Update database: `UPDATE items SET location = 'A-12' WHERE item_id = 'ITEM123';`
   3. **Dashboard**:
      - Anita lihat di dashboard: “ITEM123 di A-12, SBY1, berat 5,02g.”
@@ -64,19 +65,18 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Konteks**: Seseorang coba ambil cincin dari A-12, sembunyikan di wadah logam.
 - **Alur Kerja**:
   1. **Deteksi Awal**:
-     - Sensor load cell di A-12 deteksi berat turun dari 5,02g ke 0g.
+     - Sensor load cell di A-12 (ditenagai UPS) deteksi berat turun dari 5,02g ke 0g.
      - RFID reader gagal deteksi tag (diblokir wadah logam).
   2. **Pintu Kluis**:
-     - Antena EAS deteksi tag AM aktif, picu sirene.
-     - Kamera AI deteksi “wadah logam mencurigakan” (YOLOv8, 75% confidence).
-     - Metal detector di pintu konfirmasi logam, picu alarm tambahan.
+     - Antena EAS (ditenagai UPS) deteksi tag AM aktif, picu sirene.
+     - Kamera AI (mati karena listrik normal down) gak bisa cek, tapi metal detector (ditenagai UPS) konfirmasi logam, picu alarm.
   3. **Notifikasi**:
-     - Raspberry Pi kirim alert ke AWS IoT Core.
+     - Raspberry Pi (ditenagai UPS) kirim alert ke AWS IoT Core.
      - Twilio kirim SMS ke Anita: “ITEM123 hilang dari A-12, SBY1, wadah logam terdeteksi, 14:00 WIB.”
      - Kantor pusat terima notifikasi serupa via email.
   4. **Dashboard**:
-     - Anita lihat alert merah: “Anomali: ITEM123 hilang, periksa pintu kluis.”
-     - Kantor pusat lihat footage kamera di dashboard.
+     - Anita lihat alert merah di dashboard (ditenagai UPS): “Anomali: ITEM123 hilang, periksa pintu kluis.”
+     - Kantor pusat lihat alert via dashboard.
 - **Output**:
   - Database: `INSERT INTO logs (item_id, branch_id, event, timestamp) VALUES ('ITEM123', 'SBY1', 'Anomali: Berat 0g, EAS aktif', '2025-05-28 14:00:00');`
   - Aksi: Budi hentikan pelaku, periksa wadah.
@@ -85,13 +85,13 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Konteks**: Nasabah lunasi gadai, ambil cincin.
 - **Alur Kerja**:
   1. **Verifikasi**:
-     - Budi scan RFID: Konfirmasi “ITEM123, status: Lunas.”
-     - Kamera AI verifikasi: “Cincin emas 24K, cocok.”
+     - Budi scan RFID (ditenagai UPS): Konfirmasi “ITEM123, status: Lunas.”
+     - Kamera AI (nyala karena listrik normal balik) verifikasi: “Cincin emas 24K, cocok.”
   2. **Pengambilan**:
-     - Budi nonaktifkan tag AM dengan demagnetisasi.
-     - Cincin diambil, sensor load cell catat berat 0g.
+     - Budi nonaktifkan tag AM dengan detacher manual.
+     - Cincin diambil, sensor load cell (ditenagai UPS) catat berat 0g.
   3. **Update Data**:
-     - Data dikirim ke RDS via AWS IoT Core.
+     - Raspberry Pi kirim data ke RDS via AWS IoT Core.
      - Update: `UPDATE items SET status = 'Diambil', location = 'Keluar' WHERE item_id = 'ITEM123';`
   4. **Dashboard**:
      - Anita lihat: “ITEM123 diambil nasabah, SBY1, 16:00 WIB.”
@@ -101,35 +101,36 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
   - Notifikasi: Email ke Anita, “ITEM123 diambil.”
 
 #### Tahap 5: Kerusakan Peralatan (09:00 WIB, 29 Mei 2025)
-- **Konteks**: Kamera AI mati karena listrik down di Surabaya 1.
+- **Konteks**: Kamera AI mati karena stopkontak kamera kehilangan daya (kabel putus), tapi UPS nyala buat perangkat lain di Surabaya 1.
 - **Alur Kerja**:
   1. **Deteksi Masalah**:
-     - Raspberry Pi kirim alert: “Kamera offline, SBY1, 09:00 WIB.”
-     - Dashboard lihat status: “Kamera AI gagal, gunakan prosedur manual.”
+     - Raspberry Pi (ditenagai UPS) monitor status kamera, kirim alert via AWS IoT Core: “Kamera offline, SBY1, 09:00 WIB.”
+     - Dashboard (diakses dari komputer Budi, ditenagai UPS) lihat status: “Kamera AI gagal, gunakan prosedur manual.”
   2. **Penanganan Manual**:
-     - Budi input data cincin baru (ITEM456, gelang emas, 15g) di dashboard: `item_id: "ITEM456", description: "Gelang emas, 15g", status: "Gadai"`.
-     - Pasang tag AM dan RFID, sensor load cell verifikasi: 15g.
+     - Budi input data gelang baru (ITEM456, gelang emas, 15g) di dashboard: `item_id: "ITEM456", description: "Gelang emas, 15g", status: "Gadai"`.
+     - Pasang tag AM dan RFID (manual), sensor load cell (ditenagai UPS) verifikasi: 15g.
   3. **Penyimpanan Data**:
-     - Data disimpan di RDS (cloud) meski tanpa AI.
+     - Raspberry Pi (ditenagai UPS) kirim data ke RDS via internet (koneksi masih aktif).
      - Kantor pusat diberi tahu via email: “Data manual ITEM456, kamera offline.”
   4. **Perbaikan**:
-     - Teknisi cek listrik, nyala lagi pukul 09:30 WIB.
+     - Teknisi cek stopkontak, ganti kabel, listrik normal nyala lagi pukul 09:30 WIB.
      - Kamera AI aktif kembali, verifikasi ulang ITEM456.
 - **Output**:
-  - Database: `INSERT INTO items ...` untuk ITEM456.
+  - Database: `INSERT INTO items (item_id, branch_id, description, status, location, timestamp) VALUES ('ITEM456', 'SBY1', 'Gelang emas, 15g', 'Gadai', 'Verifikasi', '2025-05-29 09:00:00');`
   - Log: “Kamera offline 09:00-09:30 WIB, perbaikan selesai.”
 
 #### Tahap 6: Kesalahan Input Data (10:30 WIB)
-- **Konteks**: Budi salah input berat ITEM123 jadi 50g (harusnya 5g).
+- **Konteks**: Budi salah input berat ITEM123 jadi 50g (harusnya 5g) di dashboard.
 - **Alur Kerja**:
   1. **Deteksi Kesalahan**:
-     - Sensor load cell di A-12 catat 5,02g, beda sama data dashboard (50g).
-     - Alert muncul: “Data berat gak cocok, cek ulang!”
+     - Sensor load cell di A-12 (ditenagai UPS) catat 5,02g, beda sama data dashboard (50g).
+     - Alert muncul di dashboard: “Data berat gak cocok, cek ulang!”
   2. **Koreksi**:
      - Anita buka dashboard, minta Budi periksa.
      - Budi ubah data: `UPDATE items SET berat = 5 WHERE item_id = 'ITEM123';`.
   3. **Sinkronisasi**:
-     - Data diperbarui di RDS, notifikasi ke kantor pusat.
+     - Raspberry Pi kirim perubahan ke RDS.
+     - Notifikasi ke kantor pusat via email.
   4. **Dashboard**:
      - Anita lihat: “ITEM123 berat diperbaiki ke 5g, 10:30 WIB.”
 - **Output**:
@@ -141,7 +142,7 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 ### Opsi 2: Implementasi Tanpa Cloud (Server Lokal)
 
 #### Tahap 1: Penerimaan Barang (10:00 WIB, 28 Mei 2025)
-- **Konteks**: Sama seperti cloud, nasabah serahkan cincin (ITEM123).
+- **Konteks**: Nasabah serahkan cincin (ITEM123).
 - **Alur Kerja**:
   1. **Verifikasi Barang**:
      - Budi scan cincin dengan kamera, YOLOv8 konfirmasi: “Cincin emas 24K.”
@@ -149,15 +150,15 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
   2. **Pemberian Tag**:
      - Tag AM dan UHF dipasang, data RFID dienkripsi AES-256.
   3. **Penyimpanan Data**:
-     - Raspberry Pi kirim data ke server lokal cabang (PC Ubuntu).
-     - Data disimpan di PostgreSQL lokal: `INSERT INTO items ...` (sama seperti cloud).
-     - Server cabang replikasi data ke server pusat via VPN (OpenVPN).
+     - Raspberry Pi kirim data ke server lokal (PC Ubuntu, ditenagai listrik normal).
+     - Data disimpan di PostgreSQL lokal: `INSERT INTO items ...`.
+     - Replikasi ke server pusat via VPN (OpenVPN).
   4. **Dashboard**:
-     - Anita buka dashboard di komputer lokal (`http://192.168.1.100:5000`), lihat: “ITEM123 diterima.”
-     - Kantor pusat buka dashboard pusat (`http://pusat.pegadaian.local:5000`) via VPN.
+     - Anita buka dashboard lokal (`http://192.168.1.100:5000`), lihat: “ITEM123 diterima.”
+     - Kantor pusat lihat via VPN.
 - **Output**:
   - Database: Data ITEM123 tersimpan.
-  - Notifikasi: Email ke Anita (via Twilio, butuh internet untuk ini).
+  - Notifikasi: Email ke Anita (via Twilio, butuh internet).
 
 #### Tahap 2: Penyimpanan (10:15 WIB)
 - **Konteks**: Cincin ke kompartemen A-12.
@@ -166,10 +167,10 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
      - RFID reader deteksi tag di A-12.
      - Sensor load cell konfirmasi berat.
   2. **Sinkronisasi Data**:
-     - Data disimpan di server lokal cabang, replikasi ke pusat via VPN.
+     - Data disimpan di server lokal, replikasi ke pusat via VPN.
      - Update: `UPDATE items SET location = 'A-12' ...`
   3. **Dashboard**:
-     - Anita lihat di dashboard lokal: “ITEM123 di A-12.”
+     - Anita lihat: “ITEM123 di A-12.”
      - Kantor pusat lihat via VPN.
 - **Output**:
   - Database: Lokasi diperbarui.
@@ -179,18 +180,17 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Konteks**: Cincin disembunyikan di wadah logam.
 - **Alur Kerja**:
   1. **Deteksi Awal**:
-     - Sensor load cell deteksi berat 0g.
+     - Sensor load cell (ditenagai UPS) deteksi berat 0g.
      - RFID reader gagal deteksi tag.
   2. **Pintu Kluis**:
-     - Antena EAS picu sirene.
-     - Kamera AI deteksi wadah logam.
-     - Metal detector picu alarm.
+     - Antena EAS (ditenagai UPS) picu sirene.
+     - Kamera AI (mati karena listrik normal down) gak bisa cek, tapi metal detector (ditenagai UPS) picu alarm.
   3. **Notifikasi**:
-     - Raspberry Pi kirim alert ke server lokal.
-     - Twilio kirim SMS ke Anita (jika internet tersedia).
+     - Raspberry Pi (ditenagai UPS) kirim alert ke server lokal.
+     - Twilio kirim SMS ke Anita (jika internet nyala).
      - Jika offline, alert disimpan lokal, disinkronkan saat online.
   4. **Dashboard**:
-     - Anita lihat alert di dashboard lokal.
+     - Anita lihat alert di dashboard lokal (ditenagai UPS).
      - Kantor pusat lihat via VPN setelah sinkronisasi.
 - **Output**:
   - Database: Log anomali.
@@ -200,33 +200,33 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Konteks**: Nasabah ambil cincin.
 - **Alur Kerja**:
   1. **Verifikasi**:
-     - RFID konfirmasi “Lunas,” AI verifikasi cincin.
+     - RFID (ditenagai UPS) konfirmasi “Lunas,” AI (nyala karena listrik normal balik) verifikasi cincin.
   2. **Pengambilan**:
      - Tag AM dinonaktifkan.
-     - Sensor load cell catat 0g.
+     - Sensor load cell (ditenagai UPS) catat 0g.
   3. **Update Data**:
      - Data disimpan di server lokal, replikasi ke pusat.
      - Update: `UPDATE items SET status = 'Diambil' ...`
   4. **Dashboard**:
-     - Anita lihat di dashboard lokal: “ITEM123 diambil.”
+     - Anita lihat: “ITEM123 diambil.”
      - Kantor pusat lihat via VPN.
 - **Output**:
   - Database: Status diperbarui.
   - Notifikasi: Email ke Anita.
 
 #### Tahap 5: Kerusakan Peralatan (09:00 WIB, 29 Mei 2025)
-- **Konteks**: Kamera AI mati karena listrik down.
+- **Konteks**: Kamera AI mati karena stopkontak kamera kehilangan daya, tapi UPS nyala buat Raspberry Pi, server lokal, dan komputer Budi.
 - **Alur Kerja**:
   1. **Deteksi Masalah**:
-     - Raspberry Pi kirim alert: “Kamera offline, SBY1, 09:00 WIB.”
-     - Dashboard lokal lihat: “Kamera AI gagal.”
+     - Raspberry Pi (ditenagai UPS) kirim alert ke server lokal: “Kamera offline, SBY1, 09:00 WIB.”
+     - Dashboard lokal (ditenagai UPS) lihat: “Kamera AI gagal.”
   2. **Penanganan Manual**:
-     - Budi input data ITEM456 (gelang emas, 15g) di dashboard: `item_id: "ITEM456", description: "Gelang emas, 15g"`.
-     - Pasang tag AM/RFID, sensor load cell verifikasi: 15g.
+     - Budi input data ITEM456 di dashboard: `item_id: "ITEM456", description: "Gelang emas, 15g"`.
+     - Pasang tag AM/RFID (manual), sensor load cell (ditenagai UPS) verifikasi: 15g.
   3. **Penyimpanan Data**:
-     - Data disimpan di server lokal, replikasi ke pusat via VPN.
+     - Data disimpan di server lokal (ditenagai UPS), replikasi ke pusat via VPN.
   4. **Perbaikan**:
-     - Teknisi cek listrik, nyala lagi pukul 09:30 WIB.
+     - Teknisi ganti kabel, listrik normal nyala lagi pukul 09:30 WIB.
      - Kamera aktif kembali, verifikasi ulang.
 - **Output**:
   - Database: Data ITEM456 tersimpan.
@@ -236,7 +236,7 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 - **Konteks**: Budi salah input berat ITEM123 jadi 50g.
 - **Alur Kerja**:
   1. **Deteksi Kesalahan**:
-     - Sensor load cell catat 5,02g, beda sama dashboard (50g).
+     - Sensor load cell (ditenagai UPS) catat 5,02g, beda sama dashboard (50g).
      - Alert: “Data berat gak cocok!”
   2. **Koreksi**:
      - Anita minta Budi periksa, ubah data: `UPDATE items SET berat = 5 WHERE item_id = 'ITEM123';`.
@@ -246,7 +246,7 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
      - Anita lihat: “ITEM123 berat diperbaiki ke 5g.”
 - **Output**:
   - Database: Berat diperbarui.
-  - Log: “Koreksi berat ITEM123.”
+  - Log: “Koreksi berat ITEM123, 10:30 WIB.”
 
 ---
 
@@ -256,7 +256,7 @@ Simulasi mencakup enam tahap: **Penerimaan Barang**, **Penyimpanan**, **Upaya Pe
 | **Sinkronisasi Data**    | Replikasi streaming ke AWS RDS         | Replikasi via VPN ke server pusat      |
 | **Akses Dashboard**      | Publik (`https://...`)                | Lokal/VPN (`http://192.168...`)        |
 | **Notifikasi**           | Real-time via Twilio                  | Real-time jika online, tertunda jika offline |
-| **Kantor Pusat**         | Akses langsung via dashboard          | Akses via VPN, latensi mungkin         |
+| **Handle Offline**       | Data disimpan lokal di Raspberry Pi, sinkron ke RDS pas online | Data disimpan lokal, sinkron ke pusat via VPN |
 
 ## Flowchart Sistem
 Flowchart ini dibuat pake Mermaid, bisa dirender di [Mermaid Live Editor](https://mermaid.live/).
@@ -299,3 +299,4 @@ graph TD
 - **Keamanan**: Deteksi penyembunyian dengan EAS, AI, dan metal detector.
 - **Akses Pusat**: Kantor pusat pantau semua cabang (real-time di cloud, via VPN di lokal).
 - **Fleksibilitas**: Mendukung cloud untuk skalabilitas atau lokal untuk kontrol.
+- **Ketahanan**: UPS jaga operasional selama 30 menit saat listrik mati.

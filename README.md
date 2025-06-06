@@ -252,13 +252,12 @@ Berikut pihak yang berhak melihat output sistem:
 Proyek ini dilisensikan di bawah **MIT License**. Lihat file `LICENSE`.
 
 ## Peningkatan di Masa Depan
-1. **Server Terpusat**: Mini PC (Rp2,5 juta) untuk mengelola multi-kluis.
+1. **Server Terpusat**: PC (Rp20-50 juta) untuk mengelola multi-kluis dan training model. 
 2. **Analisis Perilaku**: Deteksi gerakan mencurigakan dengan YOLOv8.
 3. **Kamera Tambahan**: Untuk cakupan lebih luas di kluis.
 4. **Segel Pintar**: Segel IoT anti-rusak untuk keamanan tambahan.
-5. **Sisa Anggaran**: Rp9,7 juta dapat dialokasikan untuk fitur di atas atau pengembangan lebih lanjut.
 
 ## Kontak
 - **Pengelola**: Mr. Don
-- **Asisten**: Bejo (bejo@xai.com)
+- **Asisten**: Bejo (bejo@donvirtus.net)
 - **GitHub Issues**: Buka isu untuk dukungan.

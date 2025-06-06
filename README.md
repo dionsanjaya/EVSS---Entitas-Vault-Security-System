@@ -31,16 +31,16 @@ Berikut daftar perangkat keras untuk prototipe, beserta fungsi dan estimasi biay
 
 | **Komponen**                     | **Biaya (Rp)** | **Fungsi**                                                                 |
 |----------------------------------|----------------|---------------------------------------------------------------------------|
-| Orange Pi 5 Ultra (16GB)         | 3.000.000      | Pusat kontrol untuk monitoring, inferensi AI (pengenalan wajah, deteksi orang), dan integrasi RFID, sidik jari, serta solenoid lock. |
-| Kamera Resolusi Tinggi (1080p)   | 2.000.000      | Merekam video CCTV dan mendukung pengenalan wajah menggunakan YOLOv8 Nano dan library *face_recognition*. |
-| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Mengidentifikasi dan memverifikasi hingga 10 kantong secara otomatis melalui tag RFID di pintu kluis. |
-| Sensor Sidik Jari (R307)         | 400.000        | Mengautentikasi petugas yang masuk/keluar kluis, memastikan hanya personel berwenang yang diizinkan. |
+| Orange Pi 5 Ultra (16GB)         | 3-6juta        | Pusat kontrol untuk monitoring, inferensi AI (pengenalan wajah, deteksi orang), dan integrasi RFID, sidik jari, serta solenoid lock. |
+| Kamera Resolusi Tinggi (1080p)   | 1-2 juta       | Merekam video CCTV dan mendukung pengenalan wajah menggunakan YOLOv8 Nano dan library *face_recognition*. |
+| RFID Reader + 100 Tag (RC522)    | 1-1.5 juta     | Mengidentifikasi dan memverifikasi hingga 10 kantong secara otomatis melalui tag RFID di pintu kluis. |
+| Sensor Sidik Jari (R307)         | 400-500rb      | Mengautentikasi petugas yang masuk/keluar kluis, memastikan hanya personel berwenang yang diizinkan. |
 | Solenoid Lock                    | 500.000        | Mengamankan pintu kluis, hanya terbuka setelah verifikasi sidik jari, wajah, dan RFID. |
 | Segel Plastik (100 unit)         | 200.000        | Memberikan segel anti-rusak untuk kantong, dengan nomor seri unik untuk verifikasi manual. |
 | Lampu LED                        | 200.000        | Meningkatkan pencahayaan di kluis untuk akurasi pengenalan wajah di kondisi minim cahaya. |
 | UPS (Uninterruptible Power Supply)| 1.000.000      | Menjamin keandalan sistem saat listrik padam, melindungi data dan kontrol akses. |
 | Instalasi & Konfigurasi          | 1.500.000      | Mencakup pengaturan, integrasi perangkat lunak, dan pengujian awal sistem. |
-| **Total**                        | **9.800.000**  |                                                                           |
+| **Total**                        | **+- 9.8 juta**  |                                                                           |
 
 **Catatan**:
 - **Orange Pi 5 Ultra** digunakan untuk performa AI yang cepat berkat NPU 6 TOPS, menggantikan Raspberry Pi 4.

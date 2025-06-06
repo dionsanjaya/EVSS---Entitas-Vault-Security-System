@@ -1,6 +1,6 @@
 # Sistem Keamanan Pegadaian
 
-Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, mengintegrasikan **QR Code**, **RFID**, **autentikasi sidik jari**, **CCTV dengan pengenalan wajah**, dan **kontrol akses berbasis IoT**. Sistem dirancang untuk menangani hingga 10 kantong barang jaminan dalam satu transaksi, dengan anggaran Rp15 juta per kluis, dan terintegrasi dengan NVR existing untuk perekaman CCTV.
+Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, mengintegrasikan **QR Code**, **RFID**, **autentikasi sidik jari**, **CCTV dengan pengenalan wajah**, dan **kontrol akses berbasis IoT**. Sistem dirancang untuk menangani hingga 10 kantong barang jaminan dalam satu transaksi, dengan anggaran Rp30 juta per kluis, dan terintegrasi dengan NVR existing untuk perekaman CCTV.
 
 ## Daftar Isi
 1. [Gambaran Umum](#gambaran-umum)
@@ -8,12 +8,13 @@ Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, meng
 3. [Alur Kerja Sistem](#alur-kerja-sistem)
 4. [Input ke Sistem](#input-ke-sistem)
 5. [Output Sistem](#output-sistem)
-6. [Notifikasi Sistem](#notifikasi-sistem)
-7. [Kemungkinan Error](#kemungkinan-error)
-8. [Pemeliharaan](#pemeliharaan)
-9. [Lisensi](#lisensi)
-10. [Peningkatan di Masa Depan](#peningkatan-di-masa-depan)
-11. [Kontak](#kontak)
+6. [Akses Output Sistem](#akses-output-sistem)
+7. [Notifikasi Sistem](#notifikasi-sistem)
+8. [Kemungkinan Error](#kemungkinan-error)
+9. [Pemeliharaan](#pemeliharaan)
+10. [Lisensi](#lisensi)
+11. [Peningkatan di Masa Depan](#peningkatan-di-masa-depan)
+12. [Kontak](#kontak)
 
 ## Gambaran Umum
 Sistem Keamanan Pegadaian mengamankan penyimpanan dan pengambilan barang jaminan di kluis menggunakan:
@@ -24,31 +25,36 @@ Sistem Keamanan Pegadaian mengamankan penyimpanan dan pengambilan barang jaminan
 - **Orange Pi 5 Ultra** sebagai pusat kontrol dengan NPU 6 TOPS untuk inferensi AI.
 - **Solenoid Lock** untuk mengamankan pintu kluis.
 
-**Catatan CCTV**:
-- Untuk **Proof of Concept (PoC)**, sistem menggunakan NVR sendiri.
+**Catatan CCTV dan PoC**:
+- Untuk **Proof of Concept (PoC)**, sistem menggunakan NVR terpisah agar tidak mengganggu NVR existing pegadaian, memastikan operasional tetap berjalan.
 - Untuk implementasi di kantor cabang, CCTV prototipe terhubung ke NVR existing.
 - Perekaman hanya dilakukan saat orang terdeteksi di kluis, disimpan di microSD (RTSP) dan NVR, dengan *bounding box* dan identitas petugas (*known*/*unknown*).
 
 ## Kebutuhan Perangkat Keras
-Berikut daftar perangkat keras untuk prototipe, beserta fungsi dan estimasi biaya (total: Rp10,8 juta).
+Berikut daftar perangkat keras untuk prototipe, beserta fungsi dan estimasi biaya (total: Rp20,3 juta).
 
 | **Komponen**                     | **Biaya (Rp)** | **Fungsi**                                                                 |
 |----------------------------------|----------------|---------------------------------------------------------------------------|
 | Orange Pi 5 Ultra (16GB)         | 3.000.000      | Pusat kontrol untuk monitoring, inferensi AI (*pengenalan wajah*, *deteksi orang*), dan integrasi RFID, sidik jari, serta solenoid lock. |
-| Kamera RTSP Resolusi Tinggi (1080p) | 2.000.000    | Merekam video saat orang terdeteksi, mendukung pengenalan wajah dengan YOLOv8 Nano dan *face_recognition*, terhubung ke NVR. |
-| NVR (untuk PoC)                  | 1.000.000      | Menyimpan rekaman CCTV dengan *bounding box* dan identitas petugas (*known*/*unknown*). Digantikan oleh NVR existing di implementasi cabang. |
-| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Mengidentifikasi dan memverifikasi hingga 10 kantong secara otomatis melalui tag RFID di pintu kluis. |
-| Sensor Sidik Jari (R307)         | 400.000        | Mengautentikasi petugas yang masuk/keluar kluis. |
-| Solenoid Lock                    | 500.000        | Mengamankan pintu kluis, hanya terbuka setelah verifikasi sidik jari, wajah, dan RFID. |
-| Segel Plastik (100 unit)         | 200.000        | Memberikan segel anti-rusak untuk kantong, dengan nomor seri unik. |
-| Lampu LED                        | 200.000        | Meningkatkan pencahayaan di kluis untuk akurasi pengenalan wajah. |
-| UPS (Uninterruptible Power Supply)| 1.000.000      | Menjamin keandalan sistem saat listrik padam. |
-| Instalasi & Konfigurasi          | 1.500.000      | Pengaturan, integrasi perangkat lunak, dan pengujian awal. |
-| **Total**                        | **10.800.000** |                                                                           |
+| Kamera RTSP Resolusi Tinggi (1080p) | 3.000.000   | Merekam video saat orang terdeteksi, dengan analitik bawaan untuk YOLOv8 Nano dan *face_recognition*, terhubung ke NVR. |
+| NVR (untuk PoC)                  | 1.000.000      | Menyimpan rekaman CCTV untuk PoC tanpa mengganggu NVR existing pegadaian.  |
+| NVMe SSD 256GB                   | 1.000.000      | Penyimpanan cepat untuk log SQLite dan rekaman sementara di Orange Pi.     |
+| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Mengidentifikasi dan memverifikasi hingga 10 kantong via RFID di pintu kluis. |
+| Sensor Sidik Jari (R307)         | 400.000        | Mengautentikasi petugas yang masuk/keluar kluis.                          |
+| Solenoid Lock                    | 500.000        | Mengamankan pintu kluis, hanya terbuka setelah verifikasi valid.           |
+| Segel Plastik (100 unit)         | 200.000        | Memberikan segel anti-rusak untuk kantong, dengan nomor seri unik.        |
+| Lampu LED                        | 200.000        | Meningkatkan pencahayaan di kluis untuk akurasi pengenalan wajah.         |
+| UPS                              | 1.000.000      | Menjamin keandalan sistem saat listrik padam.                             |
+| Scanner QR Portabel              | 1.000.000      | Verifikasi QR Code di dalam kluis untuk efisiensi pengambilan kantong.    |
+| Pengembangan AI & Antarmuka      | 4.000.000      | Pengembangan model *face recognition*, antarmuka Flask, dan notifikasi real-time (email/SMS untuk orang *unknown*). |
+| Instalasi & Konfigurasi          | 2.000.000      | Setup kompleks termasuk NVR, jaringan, dan pengujian awal.                |
+| Cadangan Pengujian & *Fine-Tuning* | 2.000.000    | Pengujian ekstensif dan penyesuaian sistem selama PoC.                    |
+| **Total**                        | **20.300.000** |                                                                           |
 
-**Catatan**:
-- NVR (Rp1 juta) hanya untuk PoC. Di cabang, kamera RTSP terhubung ke NVR existing, mengurangi biaya menjadi Rp9,8 juta.
-- Sisa anggaran (Rp4,2 juta) dapat digunakan untuk NVMe SSD (Rp1 juta) atau scanner QR portabel.
+**Catatan Anggaran**:
+- Anggaran Rp20,3 juta berada di bawah batas Rp30 juta, dengan sisa Rp9,7 juta untuk peningkatan seperti mini PC atau kamera tambahan.
+- NVR disertakan untuk PoC agar sistem existing pegadaian tidak terganggu. Di implementasi cabang, NVR existing digunakan, mengurangi biaya.
+- Biaya pengembangan AI dan antarmuka (Rp4 juta) mencakup tenaga kerja programmer untuk antarmuka Flask dan optimalisasi AI.
 
 ## Alur Kerja Sistem
 Alur kerja digambarkan dalam flowchart menggunakan **Mermaid**, dirender langsung di GitHub.
@@ -123,10 +129,10 @@ Sistem mendukung **Jaminan Baru** dan **Pengambilan Jaminan**, menangani hingga 
    - Sama seperti Jaminan Baru: verifikasi sidik jari dan wajah di pintu kluis.
 
 3. **Ambil Kantong**:
-   - CCTV merekam hanya saat YOLOv8 Nano mendeteksi orang, menyimpan video dengan *bounding box* dan identitas (*known*/*unknown*) di microSD dan NVR. Petugas mengambil kantong dari kabinet, memverifikasi QR Code secara manual (atau dengan QR Code Batch).
+   - CCTV merekam hanya saat YOLOv8 Nano mendeteksi orang, menyimpan video dengan *bounding box* dan identitas (*known*/*unknown*) di microSD dan NVR. Petugas mengambil kantong dari kabinet, memverifikasi QR Code secara manual atau dengan scanner portabel.
 
 4. **Verifikasi RFID Saat Keluar**:
-   - Pembaca RFID di pintu kluis mendeteksi tag Y1-Yn secara otomatis dan memverifikasi kecocokan dengan daftar pengambilan yang dipilih di langkah 1.
+   - Pembaca RFID di pintu kluis mendeteksi tag Y1-Yn secara otomatis dan memverifikasi kecocokan dengan daftar pengambilan.
 
 5. **Keluar dan Pencatatan**:
    - Jika RFID valid, solenoid lock membuka pintu. CCTV berhenti merekam saat tidak ada orang. Sistem mencatat identitas petugas, waktu, dan daftar RFID di SQLite.
@@ -168,6 +174,19 @@ Sebelum masuk ke kluis:
 
 **Contoh**: “Petugas Budi masuk kluis pada 06/06/2025 16:16, kantong Y1-Y10, Kabinet A.”
 
+## Akses Output Sistem
+Berikut pihak yang berhak melihat output sistem:
+- **Petugas Operasional (Teller/Kasir)**: Melihat umpan balik real-time di antarmuka Flask (misalnya, status verifikasi), tanpa akses ke log SQLite atau rekaman CCTV.
+- **Supervisor/Manager Cabang**: Akses penuh ke log SQLite dan rekaman CCTV di NVR untuk audit, dengan autentikasi berbasis peran.
+- **Tim IT Pegadaian**: Mengakses log dan rekaman untuk pemeliharaan, dengan izin dari manager cabang.
+- **Auditor Internal/Eksternal**: Memeriksa log dan rekaman dengan izin manajemen untuk kepatuhan.
+- **Pihak Berwenang**: Mengakses rekaman CCTV untuk investigasi hukum, dengan persetujuan manajemen.
+
+**Kebijakan Keamanan**:
+- Akses log SQLite dan NVR dilindungi kata sandi via antarmuka Flask.
+- Rekaman CCTV disimpan 30 hari (atau sesuai kebijakan pegadaian).
+- Log *unknown* hanya dapat dilihat oleh supervisor/manager.
+
 ## Notifikasi Sistem
 1. **Verifikasi Sidik Jari**:
    - **Valid**: “Sidik jari dikenali: [Nama Petugas].”
@@ -176,15 +195,15 @@ Sebelum masuk ke kluis:
 2. **Verifikasi Wajah**:
    - **Valid**: “Wajah dikenali: [Nama Petugas].”
    - **Tidak Valid**: “Peringatan: Wajah tidak sesuai sidik jari.”
-   - **Unknown**: “Peringatan: Orang tidak dikenal terdeteksi.” (Log-only untuk PoC).
+   - **Unknown**: “Peringatan: Orang tidak dikenal terdeteksi.” (Log-only untuk PoC, notifikasi real-time via email/SMS diimplementasikan).
 
 3. **Verifikasi RFID**:
    - **Valid**: “RFID Y1-Yn tervalidasi.”
    - **Tidak Valid**: “Peringatan: RFID tidak sesuai daftar.”
 
 4. **Deteksi Orang di Kluis**:
-   - Hanya log identitas (*known*/*unknown*) di SQLite dan NVR.
-   - Notifikasi real-time untuk *unknown* direncanakan.
+   - Log identitas (*known*/*unknown*) di SQLite dan NVR.
+   - Notifikasi real-time untuk *unknown* via email/SMS.
 
 ## Kemungkinan Error
 1. **Sidik Jari Gagal**:
@@ -233,11 +252,11 @@ Sebelum masuk ke kluis:
 Proyek ini dilisensikan di bawah **MIT License**. Lihat file `LICENSE`.
 
 ## Peningkatan di Masa Depan
-1. **Notifikasi Real-Time**: Notifikasi untuk orang tidak dikenal di kluis (email/SMS).
-2. **Scanner QR Portabel**: Untuk verifikasi cepat di kluis (Rp1 juta).
-3. **NVMe SSD**: Penyimpanan cepat untuk CCTV dan database (Rp1 juta).
-4. **Analisis Perilaku**: Deteksi gerakan mencurigakan dengan YOLOv8.
-5. **Server Terpusat**: Mini PC untuk multi-kluis.
+1. **Server Terpusat**: Mini PC (Rp2,5 juta) untuk mengelola multi-kluis.
+2. **Analisis Perilaku**: Deteksi gerakan mencurigakan dengan YOLOv8.
+3. **Kamera Tambahan**: Untuk cakupan lebih luas di kluis.
+4. **Segel Pintar**: Segel IoT anti-rusak untuk keamanan tambahan.
+5. **Sisa Anggaran**: Rp9,7 juta dapat dialokasikan untuk fitur di atas atau pengembangan lebih lanjut.
 
 ## Kontak
 - **Pengelola**: Mr. Don

@@ -27,6 +27,11 @@ Sistem Keamanan Pegadaian mengamankan penyimpanan dan pengambilan barang jaminan
 - **PC Server**: Dashboard Flask, pelatihan AI, dan database wajah terpusat.
 - **Solenoid Lock**: Mengamankan pintu kluis, dikontrol berdasarkan sidik jari dan pengenalan wajah.
 
+**Skenario Petugas (Skenario 1)**:
+- Semua petugas yang bertanggung jawab untuk ruang kluis didaftarkan di awal (sidik jari via sensor R307 dan wajah via *face_recognition* dengan 10–20 foto per petugas).
+- Petugas terdaftar dapat langsung mendaftarkan kantong (QR Code X1-Xn, RFID Y1-Yn) via dashboard Flask di meja kasir dan mengakses kluis dengan autentikasi sidik jari dan pengenalan wajah.
+- Skenario ini dipilih untuk PoC karena efisiensi (akses cepat <2 menit per transaksi), kepraktisan (tidak memerlukan persetujuan tambahan), dan kesesuaian dengan pengujian autentikasi serta verifikasi kantong.
+
 **Catatan PoC**:
 - PoC menggunakan NVR terpisah.
 - Stream RTSP dikelola oleh MEDIAMTX di Orange Pi, perekaman saat orang terdeteksi.
@@ -55,17 +60,17 @@ Berikut daftar perangkat keras untuk PoC, total Rp30 juta. Mini PC kita skip, fo
 | **Total**                        | **30.000.000** |                                                                           |
 
 **Catatan Anggaran**:
-- Optional perangkat RFID nunggu dari pihak pegadaian untuk dikirim ke lab dan diujicoba. 
+- Optional: Perangkat RFID bisa dipinjam dari pihak pegadaian untuk dilakukan ujicoba lebih lanjut.
 - Anggaran tersebut merupakan perkiraan, bukan detail.
 - Laporan analitik dimasukkan ke “Pengembangan AI & Antarmuka”, bukan saat PoC dan pembangunan tahap pertama.
 - Cadangan pengujian dipangkas dari Rp2 juta ke Rp1,7 juta agar tetap Rp30 juta.
 
 ## Alur Kerja Sistem
-Flowchart Mermaid untuk **Jaminan Baru** dan **Pengambilan Jaminan**:
+Flowchart Mermaid untuk **Jaminan Baru** dan **Pengambilan Jaminan** (berdasarkan Skenario 1):
 ```mermaid
 graph TD
     %% Jaminan Baru
-    A1[Start: Jaminan Baru] --> B1[Petugas mendaftarkan kantong<br>QR Code X1-Xn, RFID Y1-Yn<br>via Flask di meja kasir]
+    A1[Start: Jaminan Baru] --> B1[Petugas terdaftar mendaftarkan kantong<br>QR Code X1-Xn, RFID Y1-Yn<br>via Flask di meja kasir]
     B1 --> C1[Pindai sidik jari di pintu kluis]
     C1 --> D1{Sidik jari valid?}
     D1 -->|Ya| E1[CCTV mendeteksi wajah petugas<br>via YOLOv8 Nano]
@@ -84,7 +89,7 @@ graph TD
     P1 --> R1[Selesai: Jaminan Baru]
 
     %% Pengambilan Jaminan
-    A2[Start: Pengambilan Jaminan] --> B2[Pilih kantong X1-Xn, Y1-Yn<br>via dashboard Flask]
+    A2[Start: Pengambilan Jaminan] --> B2[Petugas terdaftar memilih kantong<br>X1-Xn, Y1-Yn via dashboard Flask]
     B2 --> C2[Pindai sidik jari di pintu kluis]
     C2 --> D2{Sidik jari valid?}
     D2 -->|Ya| E2[CCTV mendeteksi wajah petugas<br>via YOLOv8 Nano]
@@ -101,21 +106,21 @@ graph TD
 ```
 
 ### Detail Alur Kerja
-- **Jaminan Baru**: 
-  1. Pendaftaran kantong (QR Code, RFID, detail barang) via Flask.
+- **Jaminan Baru** (Skenario 1): 
+  1. Petugas terdaftar mendaftarkan kantong (QR Code, RFID, detail barang) via Flask di meja kasir.
   2. Autentikasi petugas di pintu kluis via sidik jari dan pengenalan wajah.
   3. Pintu terbuka jika autentikasi valid.
   4. Verifikasi RFID kantong di dalam kluis untuk memastikan sesuai daftar.
   5. CCTV merekam, log disimpan di SQLite.
   6. Keluar kluis dengan autentikasi sidik jari.
-- **Pengambilan Jaminan**: 
-  1. Pilih kantong via dashboard Flask.
+- **Pengambilan Jaminan** (Skenario 1): 
+  1. Petugas terdaftar memilih kantong via dashboard Flask.
   2. Autentikasi petugas via sidik jari dan wajah.
   3. Ambil kantong, verifikasi RFID di kluis.
   4. CCTV merekam, log disimpan.
 
 ## Input ke Sistem
-- **Pendaftaran Kantong**: QR Code, RFID, detail barang via Flask.
+- **Pendaftaran Kantong**: QR Code, RFID, detail barang via Flask oleh petugas terdaftar.
 - **Autentikasi Petugas**: Sidik jari, wajah.
 - **Verifikasi Kantong**: RFID di dalam kluis.
 
@@ -153,17 +158,16 @@ MIT License. Lihat `LICENSE`.
 
 ## Peningkatan di Masa Depan
 Ide untuk masa depan:
+- **Skenario 2: Penugasan Petugas per Akses Kluis**:
+  - Menambahkan fitur di dashboard Flask untuk memungkinkan supervisor memilih petugas tertentu untuk setiap akses kluis (misalnya, via dropdown atau daftar shift).
+  - Hanya petugas yang ditugaskan yang dapat masuk kluis, meningkatkan keamanan dan akuntabilitas.
+  - Log SQLite diperluas untuk mencatat siapa yang menugaskan petugas, cocok untuk cabang besar atau kepatuhan ketat.
+  - Integrasi dengan notifikasi eksternal (SMS/Telegram/WhatsApp) untuk persetujuan supervisor.
 - Server terpusat untuk multi-kluis.
 - Notifikasi eksternal (SMS/Email/Telegram/WhatsApp).
 - Analisis perilaku dengan YOLOv8.
 - Segel pintar berbasis NFC.
 - Cloud backup SQLite.
-
-## Model Bisnis
-**Security-as-a-Service (SaaS)**:
-- Biaya awal: Rp30 juta per kluis.
-- Langganan bulanan untuk pemeliharaan, pembaruan AI, laporan analitik.
-- Mulai dengan PoC, ekspansi ke 5–10 cabang.
 
 ## Kontak
 - **Pengelola**: Jo

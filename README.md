@@ -20,12 +20,12 @@ Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, meng
 ## Gambaran Umum
 Sistem Keamanan Pegadaian mengamankan penyimpanan dan pengambilan barang jaminan di kluis dengan teknologi mutakhir:
 - **QR Code**: Identifikasi kantong, mendukung **QR Code Batch** untuk multi-kantong.
-- **RFID**: Pelacakan kantong otomatis.
-- **Sensor Sidik Jari**: Autentikasi petugas.
-- **CCTV dengan Pengenalan Wajah**: Identifikasi petugas real-time, terintegrasi dengan NVR via **MEDIAMTX**.
+- **RFID**: Pelacakan dan verifikasi kantong otomatis di dalam kluis atau saat pendaftaran.
+- **Sensor Sidik Jari**: Autentikasi petugas untuk akses pintu kluis.
+- **CCTV dengan Pengenalan Wajah**: Identifikasi petugas real-time untuk akses pintu, terintegrasi dengan NVR via **MEDIAMTX**.
 - **Orange Pi 5 Ultra**: Pusat kontrol lokal dengan NPU 6 TOPS untuk inferensi AI.
 - **PC Server**: Dashboard Flask, pelatihan AI, dan database wajah terpusat.
-- **Solenoid Lock**: Mengamankan pintu kluis.
+- **Solenoid Lock**: Mengamankan pintu kluis, dikontrol berdasarkan sidik jari dan pengenalan wajah.
 
 **Catatan PoC**:
 - PoC menggunakan NVR terpisah.
@@ -37,12 +37,12 @@ Berikut daftar perangkat keras untuk PoC, total Rp30 juta. Mini PC kita skip, fo
 
 | **Komponen**                     | **Biaya (Rp)** | **Fungsi**                                                                 |
 |----------------------------------|----------------|---------------------------------------------------------------------------|
-| Orange Pi 5 Ultra (16GB)         | 3.000.000      | Inferensi AI (YOLOv8 Nano, *face_recognition*), streaming RTSP via MEDIAMTX, integrasi RFID, sidik jari, solenoid lock, log SQLite. |
+| Orange Pi 5 Ultra (16GB)         | 3.000.000      | Inferensi AI (YOLOv8 Nano, *face_recognition*), streaming RTSP via MEDIAMTX, integrasi sidik jari, solenoid lock, log SQLite. |
 | Kamera RTSP (1080p, 120° FOV)    | 3.000.000      | Merekam video saat orang terdeteksi, mendukung YOLOv8 Nano dan *face_recognition*. |
 | NVR (untuk PoC)                  | 1.000.000      | Menyimpan rekaman CCTV untuk PoC, kompresi H.264. |
 | NVMe SSD 256GB                   | 1.000.000      | Penyimpanan log SQLite, embedding wajah, rekaman sementara. |
-| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Verifikasi kantong via RFID (jarak 1m). |
-| Sensor Sidik Jari (R307)         | 400.000        | Autentikasi petugas (<2 detik). |
+| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Verifikasi kantong via RFID (jarak 1m) saat pendaftaran atau di kluis. |
+| Sensor Sidik Jari (R307)         | 400.000        | Autentikasi petugas untuk akses pintu (<2 detik). |
 | Solenoid Lock (12V, 5A)          | 500.000        | Mengamankan pintu kluis. |
 | Segel Plastik (100 unit)         | 200.000        | Segel anti-rusak. |
 | Lampu LED (5000K, 800 lumen)     | 200.000        | Pencahayaan untuk pengenalan wajah. |
@@ -51,10 +51,11 @@ Berikut daftar perangkat keras untuk PoC, total Rp30 juta. Mini PC kita skip, fo
 | PC Server (32GB RAM, Ryzen 5, GTX 1650) | 9.000.000 | Dashboard Flask, pelatihan AI batch, database wajah. |
 | Pengembangan AI & Antarmuka (termasuk laporan) | 5.000.000 | Model *face_recognition*, skrip Flask pelatihan batch, laporan analitik. |
 | Instalasi & Konfigurasi          | 2.000.000      | Setup MEDIAMTX, NVR, jaringan. |
-| Cadangan Pengujian & *Fine-Tuning* | 2.000.000    | Pengujian PoC, simulasi 10 kantong. |
-| **Total**                        | **+- 30.000.000** |                                                                           |
+| Cadangan Pengujian & *Fine-Tuning* | 1.700.000    | Pengujian PoC, simulasi 10 kantong. |
+| **Total**                        | **30.000.000** |                                                                           |
 
 **Catatan Anggaran**:
+- Optional perangkat RFID nunggu dari pihak pegadaian untuk dikirim ke lab dan diujicoba. 
 - Anggaran tersebut merupakan perkiraan, bukan detail.
 - Laporan analitik dimasukkan ke “Pengembangan AI & Antarmuka”, bukan saat PoC dan pembangunan tahap pertama.
 - Cadangan pengujian dipangkas dari Rp2 juta ke Rp1,7 juta agar tetap Rp30 juta.
@@ -70,13 +71,13 @@ graph TD
     D1 -->|Ya| E1[CCTV mendeteksi wajah petugas<br>via YOLOv8 Nano]
     D1 -->|Tidak| F1[Peringatan di dashboard:<br>Akses ditolak]
     E1 --> G1{Wajah sesuai sidik jari?}
-    G1 -->|Ya| H1[Pindai RFID Y1-Yn di pintu]
+    G1 -->|Ya| H1[Solenoid lock membuka pintu]
     G1 -->|Tidak| I1[Peringatan di dashboard:<br>Wajah tidak sesuai]
-    H1 --> J1{RFID sesuai daftar?}
-    J1 -->|Ya| K1[Solenoid lock membuka pintu]
-    J1 -->|Tidak| L1[Peringatan di dashboard:<br>RFID tidak sesuai]
-    K1 --> M1[CCTV merekam via MEDIAMTX<br>saat orang terdeteksi<br>menempatkan kantong di kabinet]
-    M1 --> N1[Pindai sidik jari untuk keluar]
+    H1 --> J1[Pindai RFID Y1-Yn di kluis<br>untuk verifikasi kantong]
+    J1 --> K1{RFID sesuai daftar?}
+    K1 -->|Ya| L1[CCTV merekam via MEDIAMTX<br>saat orang terdeteksi<br>menempatkan kantong di kabinet]
+    K1 -->|Tidak| M1[Peringatan di dashboard:<br>RFID tidak sesuai]
+    L1 --> N1[Pindai sidik jari untuk keluar]
     N1 --> O1{Sidik jari valid?}
     O1 -->|Ya| P1[Sistem mencatat log<br>petugas, waktu, RFID di SQLite]
     O1 -->|Tidak| Q1[Peringatan di dashboard:<br>Akses ditolak]
@@ -89,27 +90,38 @@ graph TD
     D2 -->|Ya| E2[CCTV mendeteksi wajah petugas<br>via YOLOv8 Nano]
     D2 -->|Tidak| F2[Peringatan di dashboard:<br>Akses ditolak]
     E2 --> G2{Wajah sesuai sidik jari?}
-    G2 -->|Ya| H2[CCTV merekam via MEDIAMTX<br>saat orang terdeteksi<br>petugas mengambil kantong]
+    G2 -->|Ya| H2[Solenoid lock membuka pintu]
     G2 -->|Tidak| I2[Peringatan di dashboard:<br>Wajah tidak sesuai]
-    H2 --> J2[Pindai RFID Y1-Yn saat keluar]
-    J2 --> K2{RFID sesuai daftar?}
-    K2 -->|Ya| L2[Solenoid lock membuka pintu]
-    K2 -->|Tidak| M2[Peringatan di dashboard:<br>RFID tidak sesuai]
-    L2 --> N2[Sistem mencatat log<br>petugas, waktu, RFID di SQLite]
-    N2 --> O2[Selesai: Pengambilan Jaminan]
+    H2 --> J2[CCTV merekam via MEDIAMTX<br>saat orang terdeteksi<br>petugas mengambil kantong]
+    J2 --> K2[Pindai RFID Y1-Yn di kluis<br>saat mengambil kantong]
+    K2 --> L2{RFID sesuai daftar?}
+    L2 -->|Ya| M2[Sistem mencatat log<br>petugas, waktu, RFID di SQLite]
+    L2 -->|Tidak| N2[Peringatan di dashboard:<br>RFID tidak sesuai]
+    M2 --> O2[Selesai: Pengambilan Jaminan]
 ```
 
 ### Detail Alur Kerja
-- **Jaminan Baru**: Pendaftaran kantong, autentikasi sidik jari, pengenalan wajah, verifikasi RFID, akses kluis, pencatatan log.
-- **Pengambilan Jaminan**: Pilih kantong via dashboard, autentikasi, ambil kantong, verifikasi RFID saat keluar, pencatatan log.
+- **Jaminan Baru**: 
+  1. Pendaftaran kantong (QR Code, RFID, detail barang) via Flask.
+  2. Autentikasi petugas di pintu kluis via sidik jari dan pengenalan wajah.
+  3. Pintu terbuka jika autentikasi valid.
+  4. Verifikasi RFID kantong di dalam kluis untuk memastikan sesuai daftar.
+  5. CCTV merekam, log disimpan di SQLite.
+  6. Keluar kluis dengan autentikasi sidik jari.
+- **Pengambilan Jaminan**: 
+  1. Pilih kantong via dashboard Flask.
+  2. Autentikasi petugas via sidik jari dan wajah.
+  3. Ambil kantong, verifikasi RFID di kluis.
+  4. CCTV merekam, log disimpan.
 
 ## Input ke Sistem
 - **Pendaftaran Kantong**: QR Code, RFID, detail barang via Flask.
-- **Autentikasi Petugas**: Sidik jari, wajah, RFID.
+- **Autentikasi Petugas**: Sidik jari, wajah.
+- **Verifikasi Kantong**: RFID di dalam kluis.
 
 ## Output Sistem
-- **Kontrol Akses**: Pintu terbuka jika valid.
-- **Log**: SQLite mencatat petugas, waktu, RFID.
+- **Kontrol Akses**: Pintu terbuka jika sidik jari dan wajah valid.
+- **Log**: SQLite mencatat petugas, waktu, RFID kantong.
 - **Rekaman CCTV**: Disimpan di NVR via MEDIAMTX.
 - **Laporan Analitik**: Bulanan, dari log SQLite (akses kluis, deteksi *unknown*, waktu rata-rata), ekspor PDF/CSV.
 - **Dashboard**: Umpan balik real-time.
@@ -125,11 +137,11 @@ graph TD
 Notifikasi di dashboard Flask:
 - **Sidik Jari**: Valid/tidak valid.
 - **Wajah**: Valid/tidak valid/unknown.
-- **RFID**: Valid/tidak valid.
+- **RFID Kantong**: Valid/tidak valid (saat verifikasi di kluis).
 - **Deteksi Orang**: Log dan peringatan unknown.
 
 ## Kemungkinan Error
-- Sidik jari gagal, pengenalan wajah gagal, RFID gagal, kamera/NVR gagal, solenoid lock gagal, Orange Pi overheating.
+- Sidik jari gagal, pengenalan wajah gagal, RFID kantong gagal, kamera/NVR gagal, solenoid lock gagal, Orange Pi overheating.
 
 ## Pemeliharaan
 - **Perangkat Keras**: Bersihkan perangkat, uji UPS, monitor suhu.
@@ -140,7 +152,7 @@ Notifikasi di dashboard Flask:
 MIT License. Lihat `LICENSE`.
 
 ## Peningkatan di Masa Depan
-Ide untuk masa depan (tanpa nominal harga, karena masa depan itu misterius seperti cuaca!):
+Ide untuk masa depan:
 - Server terpusat untuk multi-kluis.
 - Notifikasi eksternal (SMS/Email/Telegram/WhatsApp).
 - Analisis perilaku dengan YOLOv8.

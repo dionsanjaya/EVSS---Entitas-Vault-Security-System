@@ -1,6 +1,6 @@
 # Sistem Keamanan Pegadaian
 
-Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, mengintegrasikan **QR Code**, **RFID**, **autentikasi sidik jari**, **CCTV dengan pengenalan wajah**, dan **kontrol akses berbasis IoT**. Sistem dirancang untuk menangani hingga 10 kantong barang jaminan dalam satu transaksi, dengan anggaran Rp30 juta per kluis, dan terintegrasi dengan NVR existing untuk perekaman CCTV. Fokus utama adalah **Proof of Concept (PoC)** untuk memastikan keandalan sebelum ekspansi.
+Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, mengintegrasikan **QR Code**, **RFID**, **autentikasi sidik jari**, **CCTV dengan pengenalan wajah**, dan **kontrol akses berbasis IoT**. Sistem dirancang untuk menangani hingga 10 kantong barang jaminan dalam satu transaksi, dengan anggaran Rp30 juta per kluis, dan terintegrasi dengan NVR untuk perekaman CCTV. Fokus utama adalah **Proof of Concept (PoC)** untuk memastikan keandalan sebelum ekspansi.
 
 ## Daftar Isi
 1. [Gambaran Umum](#gambaran-umum)
@@ -20,136 +20,156 @@ Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, meng
 ## Gambaran Umum
 Sistem Keamanan Pegadaian mengamankan penyimpanan dan pengambilan barang jaminan di kluis dengan teknologi mutakhir:
 - **QR Code**: Identifikasi kantong, mendukung **QR Code Batch** untuk multi-kantong.
-- **RFID**: Pelacakan dan verifikasi kantong otomatis di dalam kluis atau saat pendaftaran.
-- **Sensor Sidik Jari**: Autentikasi petugas untuk akses pintu kluis.
-- **CCTV dengan Pengenalan Wajah**: Identifikasi petugas real-time untuk akses pintu, terintegrasi dengan NVR via **MEDIAMTX**.
-- **Orange Pi 5 Ultra**: Pusat kontrol lokal dengan NPU 6 TOPS untuk inferensi AI.
-- **PC Server**: Dashboard Flask, pelatihan AI, dan database wajah terpusat.
-- **Solenoid Lock**: Mengamankan pintu kluis, dikontrol berdasarkan sidik jari dan pengenalan wajah.
+- **RFID**: Deteksi pergerakan kantong di pintu kluis untuk memastikan hanya barang yang diizinkan yang masuk/keluar, dengan notifikasi untuk anomali.
+- **Sensor Sidik Jari**: Autentikasi petugas untuk masuk (sensor luar) dan keluar (sensor dalam) kluis.
+- **CCTV dengan Pengenalan Wajah**: Identifikasi petugas real-time di depan pintu (1 kamera) dan di dalam kluis (2 kamera), terintegrasi dengan NVR via **MEDIAMTX**.
+- **Orange Pi 5 Ultra**: Pusat kontrol lokal dengan NPU 6 TOPS untuk inferensi AI (YOLOv8 Nano, *face_recognition*), streaming RTSP, dan log SQLite.
+- **PC Server**: Dashboard Flask, pelatihan AI batch, dan database wajah terpusat.
+- **Solenoid Lock**: Mengamankan pintu kluis, dikontrol berdasarkan sidik jari, wajah, dan QR Code (untuk Deposit/Retrieve).
 
 **Skenario Petugas (Skenario 1)**:
-- Semua petugas yang bertanggung jawab untuk ruang kluis didaftarkan di awal (sidik jari via sensor R307 dan wajah via *face_recognition* dengan 10–20 foto per petugas).
-- Petugas terdaftar dapat langsung mendaftarkan kantong (QR Code X1-Xn, RFID Y1-Yn) via dashboard Flask di meja kasir dan mengakses kluis dengan autentikasi sidik jari dan pengenalan wajah.
-- Skenario ini dipilih untuk PoC karena efisiensi (akses cepat <2 menit per transaksi), kepraktisan (tidak memerlukan persetujuan tambahan), dan kesesuaian dengan pengujian autentikasi serta verifikasi kantong.
+- Semua petugas terdaftar di awal (sidik jari via R307, wajah via *face_recognition* dengan 10–20 foto per petugas).
+- Petugas dapat memilih tujuan: Deposit (memasukkan barang), Retrieve (mengambil barang), atau Inspect (inspeksi tanpa barang).
+- Untuk Deposit/Retrieve, petugas memindai QR Code batch di pintu. Untuk Inspect, hanya sidik jari dan wajah diperlukan.
+- Skenario ini dipilih untuk PoC karena efisiensi, kepraktisan, dan kesesuaian dengan pengujian autentikasi serta deteksi RFID.
+
+**Fitur Tambahan**:
+- **Mode Keluar Sementara**: Memungkinkan petugas keluar sementara selama Deposit dengan membawa barang, dengan verifikasi RFID saat kembali.
+- **Multi-Petugas**: Sistem mendukung beberapa petugas di kluis bersamaan, dengan CCTV memverifikasi wajah masing-masing.
 
 **Catatan PoC**:
-- PoC menggunakan NVR terpisah.
-- Stream RTSP dikelola oleh MEDIAMTX di Orange Pi, perekaman saat orang terdeteksi.
-- Dashboard Flask di PC server menampilkan notifikasi dan log.
+- PoC menggunakan NVR terpisah untuk perekaman CCTV.
+- Stream RTSP dikelola oleh MEDIAMTX di Orange Pi, perekaman hanya saat orang terdeteksi.
+- Dashboard Flask menampilkan notifikasi real-time dan log untuk audit.
 
 ## Kebutuhan Perangkat Keras
-Berikut daftar perangkat keras untuk PoC, total Rp30 juta. Mini PC kita skip, fokus ke PC Server yang lebih bertenaga!
+Berikut daftar perangkat keras untuk PoC, total Rp30 juta:
 
 | **Komponen**                     | **Biaya (Rp)** | **Fungsi**                                                                 |
 |----------------------------------|----------------|---------------------------------------------------------------------------|
 | Orange Pi 5 Ultra (16GB)         | 3.000.000      | Inferensi AI (YOLOv8 Nano, *face_recognition*), streaming RTSP via MEDIAMTX, integrasi sidik jari, solenoid lock, log SQLite. |
-| Kamera RTSP (1080p, 120° FOV)    | 3.000.000      | Merekam video saat orang terdeteksi, mendukung YOLOv8 Nano dan *face_recognition*. |
-| NVR (untuk PoC)                  | 1.000.000      | Menyimpan rekaman CCTV untuk PoC, kompresi H.264. |
+| Kamera RTSP (1080p, 120° FOV, 2 unit) | 3.000.000 | Perekaman di kluis, verifikasi wajah real-time. |
+| Kamera RTSP Depan Pintu (1080p)  | 1.500.000      | Autentikasi wajah di pintu masuk. |
+| NVR (untuk PoC)                  | 1.000.000      | Menyimpan rekaman CCTV, kompresi H.264. |
 | NVMe SSD 256GB                   | 1.000.000      | Penyimpanan log SQLite, embedding wajah, rekaman sementara. |
-| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Verifikasi kantong via RFID (jarak 1m) saat pendaftaran atau di kluis. |
-| Sensor Sidik Jari (R307)         | 400.000        | Autentikasi petugas untuk akses pintu (<2 detik). |
+| RFID Reader + 100 Tag (RC522)    | 1.000.000      | Deteksi kantong masuk/keluar di pintu kluis (jarak 1m). |
+| Sensor Sidik Jari (R307, 2 unit) | 800.000        | Autentikasi petugas (1 luar untuk masuk, 1 dalam untuk keluar, <2 detik). |
 | Solenoid Lock (12V, 5A)          | 500.000        | Mengamankan pintu kluis. |
-| Segel Plastik (100 unit)         | 200.000        | Segel anti-rusak. |
+| Segel Plastik (100 unit)         | 200.000        | Segel anti-rusak untuk kantong. |
 | Lampu LED (5000K, 800 lumen)     | 200.000        | Pencahayaan untuk pengenalan wajah. |
 | UPS (1000VA)                     | 1.000.000      | Keandalan saat listrik padam (2 jam). |
-| Scanner QR Portabel              | 1.000.000      | Verifikasi QR Code di kluis. |
+| Scanner QR Portabel              | 1.000.000      | Verifikasi QR Code di pintu kluis. |
 | PC Server (32GB RAM, Ryzen 5, GTX 1650) | 9.000.000 | Dashboard Flask, pelatihan AI batch, database wajah. |
-| Pengembangan AI & Antarmuka (termasuk laporan) | 5.000.000 | Model *face_recognition*, skrip Flask pelatihan batch, laporan analitik. |
+| Pengembangan AI & Antarmuka (termasuk laporan) | 5.000.000 | Model *face_recognition*, skrip Flask, laporan analitik. |
 | Instalasi & Konfigurasi          | 2.000.000      | Setup MEDIAMTX, NVR, jaringan. |
-| Cadangan Pengujian & *Fine-Tuning* | 1.700.000    | Pengujian PoC, simulasi 10 kantong. |
+| Cadangan Pengujian & *Fine-Tuning* | 1.300.000    | Pengujian PoC, simulasi 10 kantong. |
 | **Total**                        | **30.000.000** |                                                                           |
 
 **Catatan Anggaran**:
-- Optional: Perangkat RFID bisa dipinjam dari pihak pegadaian untuk dilakukan ujicoba lebih lanjut.
-- Anggaran tersebut merupakan perkiraan, bukan detail.
-- Laporan analitik dimasukkan ke “Pengembangan AI & Antarmuka”, bukan saat PoC dan pembangunan tahap pertama.
-- Cadangan pengujian dipangkas dari Rp2 juta ke Rp1,7 juta agar tetap Rp30 juta.
+- Anggaran mencakup dua sensor sidik jari untuk keamanan maksimal.
+- Cadangan pengujian dipangkas dari Rp1,7 juta ke Rp1,3 juta untuk mengakomodasi sensor tambahan.
+- Laporan analitik termasuk dalam “Pengembangan AI & Antarmuka”.
 
 ## Alur Kerja Sistem
-Flowchart Mermaid untuk **Jaminan Baru** dan **Pengambilan Jaminan** (berdasarkan Skenario 1):
+Flowchart Mermaid untuk alur kerja umum (Deposit, Retrieve, Inspect), dengan fokus pada proses keluar:
+
 ```mermaid
 graph TD
-    %% Jaminan Baru
-    A1[Start: Jaminan Baru] --> B1[Petugas terdaftar mendaftarkan kantong<br>QR Code X1-Xn, RFID Y1-Yn<br>via Flask di meja kasir]
-    B1 --> C1[Pindai sidik jari di pintu kluis]
-    C1 --> D1{Sidik jari valid?}
-    D1 -->|Ya| E1[CCTV mendeteksi wajah petugas<br>via YOLOv8 Nano]
-    D1 -->|Tidak| F1[Peringatan di dashboard:<br>Akses ditolak]
-    E1 --> G1{Wajah sesuai sidik jari?}
-    G1 -->|Ya| H1[Solenoid lock membuka pintu]
-    G1 -->|Tidak| I1[Peringatan di dashboard:<br>Wajah tidak sesuai]
-    H1 --> J1[Pindai RFID Y1-Yn di kluis<br>untuk verifikasi kantong]
-    J1 --> K1{RFID sesuai daftar?}
-    K1 -->|Ya| L1[CCTV merekam via MEDIAMTX<br>saat orang terdeteksi<br>menempatkan kantong di kabinet]
-    K1 -->|Tidak| M1[Peringatan di dashboard:<br>RFID tidak sesuai]
-    L1 --> N1[Pindai sidik jari untuk keluar]
-    N1 --> O1{Sidik jari valid?}
-    O1 -->|Ya| P1[Sistem mencatat log<br>petugas, waktu, RFID di SQLite]
-    O1 -->|Tidak| Q1[Peringatan di dashboard:<br>Akses ditolak]
-    P1 --> R1[Selesai: Jaminan Baru]
-
-    %% Pengambilan Jaminan
-    A2[Start: Pengambilan Jaminan] --> B2[Petugas terdaftar memilih kantong<br>X1-Xn, Y1-Yn via dashboard Flask]
-    B2 --> C2[Pindai sidik jari di pintu kluis]
-    C2 --> D2{Sidik jari valid?}
-    D2 -->|Ya| E2[CCTV mendeteksi wajah petugas<br>via YOLOv8 Nano]
-    D2 -->|Tidak| F2[Peringatan di dashboard:<br>Akses ditolak]
-    E2 --> G2{Wajah sesuai sidik jari?}
-    G2 -->|Ya| H2[Solenoid lock membuka pintu]
-    G2 -->|Tidak| I2[Peringatan di dashboard:<br>Wajah tidak sesuai]
-    H2 --> J2[CCTV merekam via MEDIAMTX<br>saat orang terdeteksi<br>petugas mengambil kantong]
-    J2 --> K2[Pindai RFID Y1-Yn di kluis<br>saat mengambil kantong]
-    K2 --> L2{RFID sesuai daftar?}
-    L2 -->|Ya| M2[Sistem mencatat log<br>petugas, waktu, RFID di SQLite]
-    L2 -->|Tidak| N2[Peringatan di dashboard:<br>RFID tidak sesuai]
-    M2 --> O2[Selesai: Pengambilan Jaminan]
+    A[Start] --> B[Petugas pilih tujuan di dashboard Flask]
+    B --> C{Tujuan}
+    C -->|Deposit| D1[Pindai QR Code Batch X1-Xn]
+    C -->|Retrieve| D2[Pilih kantong Y1-Yn di Flask]
+    C -->|Inspect| D3[Tidak perlu QR Code]
+    D1 --> E[Ke pintu kluis]
+    D2 --> E
+    D3 --> E
+    E --> F[Pindai sidik jari luar]
+    F --> G{Sidik jari valid?}
+    G -->|Ya| H[Kamera depan deteksi wajah]
+    G -->|Tidak| I[Peringatan: Akses ditolak]
+    H --> J{Wajah terdaftar?}
+    J -->|Ya| K[Deposit/Retrieve: Verifikasi QR Code]
+    J -->|Tidak| I
+    K --> L{QR Code valid?}
+    L -->|Ya| M[Solenoid lock buka pintu]
+    L -->|Tidak| I
+    M --> N[Masuk kluis]
+    N --> O[CCTV dalam kluis rekam & verifikasi wajah]
+    O --> P{Wajah valid?}
+    P -->|Ya| Q[Lakukan tindakan sesuai tujuan]
+    P -->|Tidak| R[Peringatan: Orang tidak dikenal]
+    Q -->|Deposit| S1[Tempatkan kantong di kabinet]
+    Q -->|Retrieve| S2[Ambil kantong dari kabinet]
+    Q -->|Inspect| S3[Lakukan inspeksi]
+    S1 --> T{Opsi Keluar Sementara?}
+    T -->|Ya| U[Pilih Keluar Sementara di Flask]
+    T -->|Tidak| V[Pindai sidik jari dalam untuk keluar]
+    U --> W[RFID deteksi kantong saat keluar]
+    W --> X{Kantong sesuai?}
+    X -->|Ya| Y[Pindai sidik jari dalam]
+    X -->|Tidak| Z[Peringatan: Kantong tidak diizinkan]
+    Y --> AA{Sidik jari valid?}
+    AA -->|Ya| AB[Solenoid lock buka pintu]
+    AA -->|Tidak| AC[Peringatan: Akses ditolak]
+    AB --> AD[Petugas keluar]
+    AD --> AE[RFID deteksi kantong saat keluar]
+    AE --> AF{Kantong diizinkan?}
+    AF -->|Ya| AG[Catat log: Petugas, waktu, RFID, tujuan]
+    AF -->|Tidak| AH[Peringatan ke dashboard: Kantong tidak diizinkan]
+    AH --> AG
+    AG --> AI[Selesai]
+    S2 --> V
+    S3 --> V
+    V --> AD
 ```
 
 ### Detail Alur Kerja
-- **Jaminan Baru** (Skenario 1): 
-  1. Petugas terdaftar mendaftarkan kantong (QR Code, RFID, detail barang) via Flask di meja kasir.
-  2. Autentikasi petugas di pintu kluis via sidik jari dan pengenalan wajah.
-  3. Pintu terbuka jika autentikasi valid.
-  4. Verifikasi RFID kantong di dalam kluis untuk memastikan sesuai daftar.
-  5. CCTV merekam, log disimpan di SQLite.
-  6. Keluar kluis dengan autentikasi sidik jari.
-- **Pengambilan Jaminan** (Skenario 1): 
-  1. Petugas terdaftar memilih kantong via dashboard Flask.
-  2. Autentikasi petugas via sidik jari dan wajah.
-  3. Ambil kantong, verifikasi RFID di kluis.
-  4. CCTV merekam, log disimpan.
+- **Pilih Tujuan**: Petugas memilih Deposit, Retrieve, atau Inspect di dashboard Flask.
+- **Autentikasi Masuk**:
+  - Sidik jari luar, wajah (kamera depan), dan QR Code (untuk Deposit/Retrieve).
+  - Inspect hanya memerlukan sidik jari dan wajah.
+- **Di Dalam Kluis**:
+  - CCTV merekam dan memverifikasi wajah. Notifikasi untuk wajah *unknown*.
+  - Deposit: Tempatkan kantong, opsi Keluar Sementara.
+  - Retrieve: Ambil kantong.
+  - Inspect: Inspeksi tanpa barang.
+- **Autentikasi Keluar**:
+  - Pindai sidik jari dalam (V). Jika valid, pintu terbuka (AB → AD).
+  - RFID mendeteksi kantong **setelah** petugas keluar (AE → AF), memicu notifikasi jika tidak diizinkan (AH), lalu log dicatat (AG).
 
 ## Input ke Sistem
-- **Pendaftaran Kantong**: QR Code, RFID, detail barang via Flask oleh petugas terdaftar.
-- **Autentikasi Petugas**: Sidik jari, wajah.
-- **Verifikasi Kantong**: RFID di dalam kluis.
+- **Pendaftaran Kantong**: QR Code, RFID, detail barang via Flask.
+- **Autentikasi Petugas**: Sidik jari (luar/dalam), wajah (depan/dalam kluis).
+- **Tujuan**: Deposit, Retrieve, Inspect, Keluar Sementara via Flask.
+- **Verifikasi Kantong**: QR Code di pintu, RFID untuk masuk/keluar.
 
 ## Output Sistem
-- **Kontrol Akses**: Pintu terbuka jika sidik jari dan wajah valid.
-- **Log**: SQLite mencatat petugas, waktu, RFID kantong.
-- **Rekaman CCTV**: Disimpan di NVR via MEDIAMTX.
-- **Laporan Analitik**: Bulanan, dari log SQLite (akses kluis, deteksi *unknown*, waktu rata-rata), ekspor PDF/CSV.
-- **Dashboard**: Umpan balik real-time.
+- **Kontrol Akses**: Pintu terbuka jika autentikasi valid.
+- **Log**: SQLite mencatat petugas, waktu, tujuan, RFID kantong, status transaksi.
+- **Rekaman CCTV**: Disimpan di NVR via MEDIAMTX saat orang terdeteksi.
+- **Laporan Analitik**: Bulanan, dari log SQLite (akses kluis, anomali, waktu rata-rata), ekspor PDF/CSV.
+- **Dashboard**: Notifikasi real-time, status perekaman, konfirmasi anomali.
 
 ## Akses Output Sistem
 - **Petugas**: Lihat umpan balik di dashboard.
-- **Supervisor**: Akses log, laporan, dan rekaman.
+- **Supervisor**: Akses log, laporan, rekaman, override anomali.
 - **Tim IT**: Pemeliharaan dengan izin.
-- **Auditor**: Akses untuk audit.
+- **Auditor**: Akses log dan rekaman untuk audit.
 - **Pihak Berwenang**: Akses rekaman untuk investigasi.
 
 ## Notifikasi Sistem
 Notifikasi di dashboard Flask:
 - **Sidik Jari**: Valid/tidak valid.
 - **Wajah**: Valid/tidak valid/unknown.
-- **RFID Kantong**: Valid/tidak valid (saat verifikasi di kluis).
-- **Deteksi Orang**: Log dan peringatan unknown.
+- **RFID**: Kantong tidak diizinkan keluar/masuk tidak sesuai grup (hanya notifikasi, tidak menghentikan akses).
+- **Deteksi Orang**: Peringatan untuk orang tak dikenal.
+- **Status Perekaman**: Aktif/berhenti.
 
 ## Kemungkinan Error
-- Sidik jari gagal, pengenalan wajah gagal, RFID kantong gagal, kamera/NVR gagal, solenoid lock gagal, Orange Pi overheating.
+- Sidik jari gagal, wajah gagal, RFID gagal, QR Code buram, kamera/NVR gagal, solenoid lock gagal, Orange Pi overheating.
 
 ## Pemeliharaan
-- **Perangkat Keras**: Bersihkan perangkat, uji UPS, monitor suhu.
+- **Perangkat Keras**: Bersihkan sensor, uji UPS, monitor suhu.
 - **Perangkat Lunak**: Perbarui OS, AI, MEDIAMTX; cadangkan SQLite.
 - **Pelatihan AI**: Batch 10 karyawan via skrip Flask di PC server (GPU GTX 1650).
 
@@ -157,17 +177,18 @@ Notifikasi di dashboard Flask:
 MIT License. Lihat `LICENSE`.
 
 ## Peningkatan di Masa Depan
-Ide untuk masa depan:
-- **Skenario 2: Penugasan Petugas per Akses Kluis**:
-  - Menambahkan fitur di dashboard Flask untuk memungkinkan supervisor memilih petugas tertentu untuk setiap akses kluis (misalnya, via dropdown atau daftar shift).
-  - Hanya petugas yang ditugaskan yang dapat masuk kluis, meningkatkan keamanan dan akuntabilitas.
-  - Log SQLite diperluas untuk mencatat siapa yang menugaskan petugas, cocok untuk cabang besar atau kepatuhan ketat.
-  - Integrasi dengan notifikasi eksternal (SMS/Telegram/WhatsApp) untuk persetujuan supervisor.
-- Server terpusat untuk multi-kluis.
-- Notifikasi eksternal (SMS/Email/Telegram/WhatsApp).
-- Analisis perilaku dengan YOLOv8.
-- Segel pintar berbasis NFC.
-- Cloud backup SQLite.
+- **Skenario 2: Penugasan Petugas**: Supervisor memilih petugas tertentu untuk akses kluis, meningkatkan akuntabilitas.
+- Notifikasi eksternal (SMS/Telegram/WhatsApp) untuk anomali.
+- Analisis CCTV dengan YOLOv8 untuk deteksi tindakan (meletakkan/mengambil kantong).
+- Segel pintar berbasis NFC untuk pelacakan kantong.
+- Cloud backup SQLite untuk multi-kluis.
+- Sensor berat di kabinet untuk verifikasi penempatan kantong.
+
+## Model Bisnis
+**Security-as-a-Service (SaaS)**:
+- Biaya awal: Rp30 juta per kluis.
+- Langganan bulanan untuk pemeliharaan, pembaruan AI, laporan analitik.
+- Mulai dengan PoC, ekspansi ke 5–10 cabang.
 
 ## Kontak
 - **Pengelola**: Jo

@@ -47,10 +47,10 @@ Berikut daftar perangkat keras untuk PoC, total Rp30 juta:
 | **Komponen**                     | **Biaya (Rp)** | **Fungsi**                                                                 |
 |----------------------------------|----------------|---------------------------------------------------------------------------|
 | Orange Pi 5 Ultra (16GB) + NVMe SSD 256GB| 3.000.000      | Inferensi AI (YOLOv8 Nano, *face_recognition*), streaming RTSP via MEDIAMTX, integrasi sidik jari, solenoid lock, log SQLite. |
-| Kamera RTSP (1080p, 120° FOV, 2 unit) | 3.000.000 | Perekaman di kluis, verifikasi wajah real-time. |
+| Kamera RTSP (1080p, 120° FOV, 2 unit) | - | Perekaman di kluis, verifikasi wajah real-time. |
 | NVR (untuk PoC)                  | 1.000.000      | Menyimpan rekaman CCTV, kompresi H.264. |
 | RFID Reader + 100 Tag (RC522)    | 1.000.000      | Deteksi kantong masuk/keluar di pintu kluis (jarak 1m). |
-| HIKVISION DS-K1T321MFWX          | 1.200.000       | Autentikasi petugas (1 luar untuk masuk, 1 dalam untuk keluar, <2 detik). |
+| HIKVISION DS-K1T321MFWX          | 1.200.000       | Autentikasi petugas (1 di luar untuk masuk, 1 di dalam untuk keluar, <2 detik). |
 | Solenoid Lock (12V, 5A)          | 500.000        | Mengamankan pintu kluis. |
 | Segel Plastik (100 unit)         | 200.000        | Segel anti-rusak untuk kantong. |
 | UPS (1000VA)                     | 1.000.000      | Keandalan saat listrik padam (2 jam). |
@@ -58,8 +58,7 @@ Berikut daftar perangkat keras untuk PoC, total Rp30 juta:
 | PC GMKTEC AMD Ryzen 7 7840HS | 9.000.000 | Dashboard Flask, pelatihan AI batch, database wajah. |
 | Pengembangan AI & Antarmuka (termasuk laporan) | 5.000.000 | Model *face_recognition*, skrip Flask, laporan analitik. |
 | Instalasi & Konfigurasi          | 2.000.000      | Setup MEDIAMTX, NVR, jaringan. |
-| Cadangan Pengujian & *Fine-Tuning* | 1.300.000    | Pengujian PoC, simulasi 10 kantong. |
-| **Total**                        | **30.000.000** |                                                                           |
+| Cadangan Pengujian & *Fine-Tuning* | 1.300.000    | Pengujian PoC, simulasi 10 kantong. |                                                                       |
 
 **Catatan Anggaran**:
 - Anggaran mencakup dua sensor sidik jari & face recognition untuk keamanan maksimal.

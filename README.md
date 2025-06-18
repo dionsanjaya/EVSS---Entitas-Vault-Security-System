@@ -19,7 +19,7 @@ Proyek ini mengimplementasikan sistem keamanan untuk ruang kluis pegadaian, meng
 
 ## Gambaran Umum
 Sistem Keamanan Pegadaian mengamankan penyimpanan dan pengambilan barang jaminan di kluis dengan teknologi mutakhir:
-- **QR Code**: Identifikasi kantong, mendukung **QR Code Batch** untuk multi-kantong.
+- **QR Code**: Identifikasi kantong.
 - **RFID**: Deteksi pergerakan kantong di pintu kluis untuk memastikan hanya barang yang diizinkan yang masuk/keluar, dengan notifikasi untuk anomali.
 - **Sensor Sidik Jari**: Autentikasi petugas untuk masuk (sensor luar) dan keluar (sensor dalam) kluis.
 - **CCTV dengan Pengenalan Wajah**: Identifikasi petugas real-time di depan pintu (1 kamera) dan di dalam kluis (2 kamera), terintegrasi dengan NVR via **MEDIAMTX**.
@@ -74,53 +74,43 @@ Berikut daftar perangkat keras untuk PoC, total Rp30 juta:
 Flowchart Mermaid untuk alur kerja umum (Deposit, Retrieve, Inspect), dengan fokus pada proses keluar:
 
 ```mermaid
-graph TD
-    A[Start] --> B[Petugas pilih tujuan di dashboard Flask]
-    B --> C{Tujuan}
-    C -->|Deposit| D1[Pindai QR Code Batch X1-Xn]
-    C -->|Retrieve| D2[Pilih kantong Y1-Yn di Flask]
-    C -->|Inspect| D3[Tidak perlu QR Code]
-    D1 --> E[Ke pintu kluis]
+flowchart TD
+    A["Start"] --> B["Petugas pilih tujuan di Dashboard"]
+    B --> C{"Tujuan"}
+    C -- Deposit --> D1["Pindai QR Code Batch X1-Xn"]
+    C -- Retrieve --> D2["Pilih kantong Y1-Yn di Flask"]
+    C -- Inspect --> D3["Tidak perlu QR Code"]
+    D1 --> E["Ke pintu kluis"]
     D2 --> E
     D3 --> E
-    E --> F[Pindai sidik jari luar]
-    F --> G{Sidik jari valid?}
-    G -->|Ya| H[Kamera depan deteksi wajah]
-    G -->|Tidak| I[Peringatan: Akses ditolak]
-    H --> J{Wajah terdaftar?}
-    J -->|Ya| K[Deposit/Retrieve: Verifikasi QR Code]
-    J -->|Tidak| I
-    K --> L{QR Code valid?}
-    L -->|Ya| M[Solenoid lock buka pintu]
-    L -->|Tidak| I
-    M --> N[Masuk kluis]
-    N --> O[CCTV dalam kluis rekam & verifikasi wajah]
-    O --> P{Wajah valid?}
-    P -->|Ya| Q[Lakukan tindakan sesuai tujuan]
-    P -->|Tidak| R[Peringatan: Orang tidak dikenal]
-    Q -->|Deposit| S1[Tempatkan kantong di kabinet]
-    Q -->|Retrieve| S2[Ambil kantong dari kabinet]
-    Q -->|Inspect| S3[Lakukan inspeksi]
-    S1 --> T{Opsi Keluar Sementara?}
-    T -->|Ya| U[Pilih Keluar Sementara di Flask]
-    T -->|Tidak| V[Pindai sidik jari dalam untuk keluar]
-    U --> W[RFID deteksi kantong saat keluar]
-    W --> X{Kantong sesuai?}
-    X -->|Ya| Y[Pindai sidik jari dalam]
-    X -->|Tidak| Z[Peringatan: Kantong tidak diizinkan]
-    Y --> AA{Sidik jari valid?}
-    AA -->|Ya| AB[Solenoid lock buka pintu]
-    AA -->|Tidak| AC[Peringatan: Akses ditolak]
-    AB --> AD[Petugas keluar]
-    AD --> AE[RFID deteksi kantong saat keluar]
-    AE --> AF{Kantong diizinkan?}
-    AF -->|Ya| AG[Catat log: Petugas, waktu, RFID, tujuan]
-    AF -->|Tidak| AH[Peringatan ke dashboard: Kantong tidak diizinkan]
+    E --> F["Pindai sidik jari luar pintu"]
+    F --> G{"Sidik jari valid?"}
+    G -- Ya --> H["Kamera depan deteksi wajah"]
+    G -- Tidak --> I["Peringatan: Akses ditolak"]
+    H --> J{"Wajah terdaftar?"}
+    J -- Ya --> K["Deposit/Retrieve: Verifikasi QR Code"]
+    J -- Tidak --> I
+    K --> L{"QR Code valid?"}
+    L -- Ya --> M["Solenoid lock buka pintu"]
+    L -- Tidak --> I
+    M --> N["Masuk kluis"]
+    N --> O["CCTV dalam kluis rekam & verifikasi wajah"]
+    O --> P{"Wajah valid?"}
+    P -- Ya --> Q["Lakukan tindakan sesuai tujuan"]
+    P -- Tidak --> R["Peringatan: Orang tidak dikenal"]
+    Q -- Deposit --> S1["Tempatkan kantong di kabinet"]
+    Q -- Retrieve --> S2["Ambil kantong dari kabinet"]
+    Q -- Inspect --> S3["Lakukan inspeksi"]
+    AD["Petugas keluar"] --> AE["RFID deteksi kantong saat keluar"]
+    AE --> AF{"Kantong diizinkan?"}
+    AF -- Ya --> AG["Catat log: Petugas, waktu, RFID, tujuan"]
+    AF -- Tidak --> AH["Peringatan ke dashboard: Kantong tidak diizinkan"]
     AH --> AG
-    AG --> AI[Selesai]
-    S2 --> V
+    AG --> AI["Selesai"]
+    S2 --> V["Pindai sidik jari dalam untuk keluar"]
     S3 --> V
     V --> AD
+    S1 --> V
 ```
 
 ### Detail Alur Kerja
